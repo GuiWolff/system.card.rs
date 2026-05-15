@@ -80,7 +80,16 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
     final erro = _erroSelecaoLogo ?? widget.erro;
 
     return AlertDialog(
-      title: const Text('Editar cabeçalho'),
+      backgroundColor: colorScheme.surface,
+      surfaceTintColor: colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      title: Row(
+        children: [
+          Icon(Icons.badge_outlined, color: colorScheme.primary),
+          const SizedBox(width: 10),
+          const Expanded(child: Text('Editar cabeçalho')),
+        ],
+      ),
       content: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: larguraConteudo),
         child: SingleChildScrollView(
@@ -172,6 +181,7 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
           label: const Text('Salvar'),
         ),
       ],
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
     );
   }
 
@@ -298,26 +308,36 @@ class _LogoEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        _PreviewLogo(logoBase64: logoBase64, nomeEmpresa: nomeEmpresa),
-        OutlinedButton.icon(
-          key: const ValueKey('cabecalho-editor-selecionar-logo'),
-          onPressed: onSelecionarLogo,
-          icon: const Icon(Icons.image_outlined),
-          label: const Text('Selecionar logo'),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _PreviewLogo(logoBase64: logoBase64, nomeEmpresa: nomeEmpresa),
+            OutlinedButton.icon(
+              key: const ValueKey('cabecalho-editor-selecionar-logo'),
+              onPressed: onSelecionarLogo,
+              icon: const Icon(Icons.image_outlined),
+              label: const Text('Selecionar logo'),
+            ),
+            TextButton.icon(
+              key: const ValueKey('cabecalho-editor-remover-logo'),
+              onPressed: onRemoverLogo,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Remover logo'),
+              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+            ),
+          ],
         ),
-        TextButton.icon(
-          key: const ValueKey('cabecalho-editor-remover-logo'),
-          onPressed: onRemoverLogo,
-          icon: const Icon(Icons.delete_outline),
-          label: const Text('Remover logo'),
-          style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -406,10 +426,7 @@ class _CampoCabecalho extends StatelessWidget {
       child: TextField(
         key: key,
         controller: controller,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          labelText: label,
-        ),
+        decoration: InputDecoration(labelText: label),
       ),
     );
   }

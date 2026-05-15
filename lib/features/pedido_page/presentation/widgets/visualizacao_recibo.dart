@@ -99,7 +99,7 @@ class _CabecalhoEmpresa extends StatelessWidget {
                       children: [
                         Text(
                           'SYSTEM CARD - RS',
-                          style: textTheme.titleLarge?.copyWith(
+                          style: textTheme.headlineSmall?.copyWith(
                             color: colorScheme.primary,
                             fontWeight: FontWeight.w800,
                           ),
@@ -116,21 +116,28 @@ class _CabecalhoEmpresa extends StatelessWidget {
             ),
             SizedBox(
               width: compacto ? constraints.maxWidth : 260,
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ContatoEmpresa(
                     icone: Icons.camera_alt_outlined,
                     texto: '@systemcards',
+                    corIcone: colorScheme.primary,
                   ),
                   _ContatoEmpresa(
                     icone: Icons.phone_android,
                     texto: '51 998020198',
+                    corIcone: colorScheme.tertiary,
                   ),
-                  _ContatoEmpresa(icone: Icons.call, texto: '51 30551025'),
+                  _ContatoEmpresa(
+                    icone: Icons.call,
+                    texto: '51 30551025',
+                    corIcone: colorScheme.onSurface,
+                  ),
                   _ContatoEmpresa(
                     icone: Icons.location_on,
                     texto: 'Rua 20 de Setembro, 528\nCentro - Guaíba - RS',
+                    corIcone: colorScheme.onSurface,
                   ),
                 ],
               ),
@@ -143,14 +150,18 @@ class _CabecalhoEmpresa extends StatelessWidget {
 }
 
 class _ContatoEmpresa extends StatelessWidget {
-  const _ContatoEmpresa({required this.icone, required this.texto});
+  const _ContatoEmpresa({
+    required this.icone,
+    required this.texto,
+    required this.corIcone,
+  });
 
   final IconData icone;
   final String texto;
+  final Color corIcone;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
@@ -158,7 +169,7 @@ class _ContatoEmpresa extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icone, size: 17, color: colorScheme.onSurface),
+          Icon(icone, size: 17, color: corIcone),
           const SizedBox(width: 8),
           Expanded(child: Text(texto, style: textTheme.bodySmall)),
         ],
@@ -475,6 +486,7 @@ class _TotaisRecibo extends StatelessWidget {
                     recibo.valorAPagarEntregaCentavos,
                   ),
                   style: textTheme.titleMedium?.copyWith(
+                    color: colorScheme.tertiary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

@@ -134,6 +134,62 @@ void main() {
     expect(viewModel.reciboEmEdicao.telefone, '51911111111');
     expect(find.text('(51) 9 1111-1111'), findsWidgets);
   });
+
+  testWidgets('ReciboPedido aciona callback de Gerar PDF', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    var chamadas = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ReciboPedido(
+              viewModel: viewModel,
+              onGerarPdf: () async {
+                chamadas++;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Gerar PDF'));
+    await tester.pumpAndSettle();
+
+    expect(chamadas, 1);
+  });
+
+  testWidgets('ReciboPedido aciona callback de Compartilhar', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    var chamadas = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ReciboPedido(
+              viewModel: viewModel,
+              onCompartilharPdf: () async {
+                chamadas++;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Compartilhar'));
+    await tester.pumpAndSettle();
+
+    expect(chamadas, 1);
+  });
 }
 
 class _ClienteRepositoryFake implements ClienteRepository {

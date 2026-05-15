@@ -437,10 +437,50 @@ void main() {
     viewModel.prepararImpressao();
 
     expect(viewModel.ultimaAcaoRecibo, 'imprimir-preparado');
+    expect(viewModel.imprimindoPdf, isFalse);
+
+    viewModel.iniciarImpressao();
+
+    expect(viewModel.imprimindoPdf, isTrue);
+    expect(viewModel.ultimaAcaoRecibo, 'impressao-em-andamento');
+
+    viewModel.concluirImpressao();
+
+    expect(viewModel.imprimindoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'impressao-concluida');
+
+    viewModel.iniciarImpressao();
+    viewModel.registrarErroImpressao('Falha ao imprimir.');
+
+    expect(viewModel.imprimindoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, isNull);
+    expect(viewModel.erro, 'Falha ao imprimir.');
 
     viewModel.prepararGeracaoPdf();
 
     expect(viewModel.ultimaAcaoRecibo, 'pdf-preparado');
+
+    viewModel.prepararCompartilhamentoPdf();
+
+    expect(viewModel.ultimaAcaoRecibo, 'compartilhamento-preparado');
+    expect(viewModel.compartilhandoPdf, isFalse);
+
+    viewModel.iniciarCompartilhamentoPdf();
+
+    expect(viewModel.compartilhandoPdf, isTrue);
+    expect(viewModel.ultimaAcaoRecibo, 'compartilhando-pdf');
+
+    viewModel.concluirCompartilhamentoPdf();
+
+    expect(viewModel.compartilhandoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
+
+    viewModel.iniciarCompartilhamentoPdf();
+    viewModel.registrarErroCompartilhamentoPdf('Falha ao compartilhar.');
+
+    expect(viewModel.compartilhandoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, isNull);
+    expect(viewModel.erro, 'Falha ao compartilhar.');
   });
 
   test('PedidoPageViewModel controla ações temporárias do cabeçalho', () async {

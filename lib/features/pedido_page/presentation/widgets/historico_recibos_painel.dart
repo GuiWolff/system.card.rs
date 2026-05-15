@@ -55,10 +55,15 @@ class _HistoricoRecibosPainelState extends State<HistoricoRecibosPainel> {
           children: [
             Row(
               children: [
+                Icon(Icons.history, color: colorScheme.primary),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Histórico de recibos',
-                    style: textTheme.titleLarge,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -96,6 +101,7 @@ class _HistoricoRecibosPainelState extends State<HistoricoRecibosPainel> {
             Flexible(
               child: DecoratedBox(
                 decoration: BoxDecoration(
+                  color: colorScheme.surface,
                   border: Border.all(color: colorScheme.outlineVariant),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -181,6 +187,10 @@ class _HistoricoReciboItem extends StatelessWidget {
               children: [
                 OutlinedButton.icon(
                   onPressed: () => onCarregar(recibo),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.secondary,
+                    side: BorderSide(color: colorScheme.secondary),
+                  ),
                   icon: const Icon(Icons.upload_file),
                   label: const Text('Carregar'),
                 ),
@@ -191,6 +201,10 @@ class _HistoricoReciboItem extends StatelessWidget {
                 ),
                 OutlinedButton.icon(
                   onPressed: () => onExcluir(recibo),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.outlineVariant),
+                  ),
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Excluir'),
                 ),

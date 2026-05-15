@@ -878,3 +878,247 @@
 - O campo informa `Gerado automaticamente pelo sistema`, deixando claro que o usuário não precisa digitar o número manualmente.
 - Widgets continuam sem acesso a repository, DTO, mapas SQLite ou `BuildContext` na ViewModel.
 - Não foi criada `ReciboPage`, rota paralela ou feature nova; a implementação permanece em `lib/features/pedido_page/`.
+
+## Planejamento - PDF A4, impressão e compartilhamento
+- Tarefa relacionada: `docs/codex/recibo/recibo-26-05-15-2.md`.
+- A `PedidoPage` continua sendo a tela real impactada; não deve ser criada `ReciboPage`, rota própria ou feature paralela.
+- O recibo deve poder gerar um PDF real em tamanho A4 a partir do estado atual de `PedidoPageViewModel.reciboEmEdicao`.
+- O PDF deve preferir o cabeçalho atual de `PedidoPageViewModel.cabecalhoEmpresa`, incluindo dados editados e fallback seguro para logo ausente ou inválida.
+- A geração de PDF deve ficar em serviço isolado da feature `pedido_page`, sem `BuildContext`, sem acesso direto a SQLite e sem regra pesada dentro do `build`.
+- O mesmo serviço/base de PDF deve alimentar:
+  - visualização em `AlertDialog`;
+  - impressão real;
+  - compartilhamento;
+  - salvamento em arquivo.
+- A ação `Gerar PDF` deve abrir um `AlertDialog` com prévia do PDF A4, respeitando limites de largura e altura para evitar overflow.
+- A ação `Imprimir` deve deixar de ser apenas preparatória e deve chamar impressão real usando o mesmo PDF gerado para a prévia.
+- A ação de compartilhamento deve abrir um popup com opções:
+  - e-mail;
+  - WhatsApp;
+  - salvar arquivo.
+- O salvamento de arquivo deve permitir escolha de caminho no desktop, preferencialmente usando seletor de arquivo compatível com o projeto.
+- E-mail e WhatsApp podem depender da folha de compartilhamento do sistema quando a plataforma não permitir direcionamento direto para um aplicativo específico.
+- Cancelamento do usuário em compartilhamento ou seleção de caminho deve ser tratado como cancelamento, não como erro.
+- Falhas de geração, impressão, compartilhamento ou salvamento devem aparecer como mensagem clara na UI sem quebrar a tela.
+- O nome sugerido do arquivo deve ser previsível, como `recibo-[numero].pdf`, com sanitização de caracteres inválidos.
+- O fluxo deve validar o recibo antes de gerar/imprimir/compartilhar ou registrar explicitamente no resumo do slice se a decisão for permitir rascunhos.
+- Widgets continuam sem acessar repository, DTOs ou mapas SQLite diretamente.
+- A `PedidoPageViewModel` continua sem acessar `BuildContext`, diálogos ou APIs visuais.
+- Slices planejados:
+  - Slice 1: serviço de PDF A4, sem alteração visual direta;
+  - Slice 2: visualização em `AlertDialog`;
+  - Slice 3: impressão real com o mesmo PDF;
+  - Slice 4: popup de compartilhamento e salvamento com caminho escolhido.
+
+## Atualização do PDF A4 - Slice 2/4 - Visualização em AlertDialog
+- A `PedidoPage` continua sendo a tela real do fluxo de pedido/recibo, sem criação de `ReciboPage`, rota própria, `Scaffold` próprio ou feature paralela.
+- A ação `Gerar PDF` do bloco `ReciboPedido` foi conectada ao fluxo real de geração e prévia do PDF.
+- A ação `GERAR PDF` do `CabecalhoApp`, renderizada dentro da `PedidoPage`, usa o mesmo fluxo de geração e prévia do recibo.
+- O PDF exibido na prévia é gerado pelo `ReciboPdfService`, usando:
+  - `PedidoPageViewModel.reciboEmEdicao`;
+  - `PedidoPageViewModel.cabecalhoEmpresa`.
+- A geração permanece fora do método `build`, sendo disparada apenas pela ação do usuário.
+- A `PedidoPageViewModel` continua sem acesso a `BuildContext`, `showDialog`, `Navigator` ou widgets.
+- A abertura do `showDialog` fica na camada de apresentação, dentro da `PedidoPage`.
+- Foi criado `ReciboPdfPreviewDialog` em `lib/features/pedido_page/presentation/widgets/recibo_pdf_preview_dialog.dart`.
+- O diálogo usa `AlertDialog` com título `Prévia do PDF`.
+- O conteúdo do diálogo possui limites de largura e altura calculados a partir da janela atual, evitando overflow em larguras e alturas reduzidas.
+- A renderização visual do PDF usa `PdfPreview` do pacote `printing`, configurado somente para visualização neste slice:
+  - sem ação de impressão;
+  - sem ação de compartilhamento;
+  - sem troca de orientação;
+  - sem troca de formato;
+  - formato inicial A4.
+- Este slice adiciona a dependência `printing` apenas para renderizar a prévia do PDF.
+- Impressão real, compartilhamento, e salvamento em arquivo continuam fora deste slice.
+- Antes de abrir a prévia, o fluxo chama a preparação do número do recibo quando houver repository disponível.
+- Antes de gerar os bytes, a ViewModel valida o recibo em edição usando as validações de domínio já existentes.
+- Se o recibo estiver inválido, o diálogo não é aberto e a primeira mensagem de validação é exposta em `PedidoPageViewModel.erro`.
+- A ViewModel passou a expor estado reativo de geração de PDF:
+  - `gerandoPdf`;
+  - `validarReciboParaGeracaoPdf`;
+  - `iniciarGeracaoPdf`;
+  - `concluirGeracaoPdf`;
+  - `registrarErroGeracaoPdf`.
+- Enquanto a geração está em andamento, o botão `Gerar PDF` do recibo fica desabilitado e exibe `Gerando PDF...`.
+- Ao concluir a geração para prévia, `ultimaAcaoRecibo` passa para `pdf-gerado` e o recibo exibe o feedback `PDF gerado para visualização.`.
+- Falhas na geração são registradas como mensagem clara em `PedidoPageViewModel.erro`, sem quebrar a tela.
+- O nome sugerido para o arquivo da prévia segue o padrão `recibo-[numero].pdf`, com sanitização simples do número para evitar caracteres inválidos.
+- O barrel público da feature `pedido_page` exporta `ReciboPdfPreviewDialog`.
+- Testes de widget cobrem:
+  - o callback de `Gerar PDF` no `ReciboPedido`;
+  - abertura do `AlertDialog` pela ação `Gerar PDF` do recibo;
+  - abertura do mesmo `AlertDialog` pela ação `GERAR PDF` do cabeçalho;
+  - bloqueio da abertura do diálogo quando o recibo está inválido.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do PDF A4 - Slice 3/4 - Impressão com o mesmo PDF
+- A `PedidoPage` continua sendo a tela real do fluxo de pedido/recibo, sem criação de `ReciboPage`, rota própria, `Scaffold` próprio ou feature paralela.
+- A ação `Imprimir` do bloco `ReciboPedido` foi conectada ao fluxo real de impressão.
+- A ação `IMPRIMIR` do `CabecalhoApp`, renderizada dentro da `PedidoPage`, usa o mesmo fluxo real de impressão.
+- A impressão reutiliza os bytes gerados por `ReciboPdfService.gerarPdfA4`, com os mesmos dados usados na prévia:
+  - `PedidoPageViewModel.reciboEmEdicao`;
+  - `PedidoPageViewModel.cabecalhoEmpresa`.
+- Foi criado `ReciboImpressaoService` em `lib/features/pedido_page/services/recibo_impressao_service.dart`.
+- `ReciboImpressaoService` recebe bytes de PDF já gerados e aciona `Printing.layoutPdf` em formato A4, sem recriar layout, cálculo monetário ou documento alternativo.
+- A `PedidoPageViewModel` continua sem acesso a `BuildContext`, widgets, `showDialog`, `Navigator` ou API direta do plugin de impressão.
+- A camada de apresentação coordena a chamada de plataforma e informa a ViewModel sobre início, conclusão, cancelamento ou erro.
+- Antes de imprimir, o fluxo chama a preparação do número do recibo quando houver repository disponível.
+- Antes de gerar os bytes para impressão, a ViewModel valida o recibo em edição usando as validações de domínio já existentes.
+- Se o recibo estiver inválido, a impressão não é chamada e a primeira mensagem de validação é exposta em `PedidoPageViewModel.erro`.
+- A ViewModel passou a expor estado reativo de impressão:
+  - `imprimindoPdf`;
+  - `validarReciboParaImpressao`;
+  - `iniciarImpressao`;
+  - `concluirImpressao`;
+  - `registrarErroImpressao`.
+- Enquanto a impressão está em andamento, os botões `Imprimir` e `Gerar PDF` do recibo ficam desabilitados para evitar ações concorrentes sobre o documento.
+- Durante a impressão, o botão do recibo exibe `Imprimindo...` e o feedback do recibo exibe `Preparando impressão...`.
+- Ao concluir a impressão com sucesso, `ultimaAcaoRecibo` passa para `impressao-concluida` e o recibo exibe `Recibo enviado para impressão.`.
+- Quando o plugin retorna cancelamento, `ultimaAcaoRecibo` passa para `impressao-cancelada` e o recibo exibe `Impressão cancelada.`.
+- Falhas na geração ou no envio para impressão são registradas como mensagem clara em `PedidoPageViewModel.erro`, sem quebrar a tela.
+- O nome sugerido para a impressão segue o mesmo padrão da prévia: `recibo-[numero].pdf`, com sanitização simples do número para evitar caracteres inválidos.
+- O barrel público da feature `pedido_page` exporta `ReciboImpressaoService`.
+- Testes de widget cobrem:
+  - impressão pelo botão `Imprimir` do recibo usando serviço fake;
+  - impressão pela ação `IMPRIMIR` do cabeçalho usando o mesmo serviço fake;
+  - repasse dos mesmos bytes gerados pelo serviço de PDF para o serviço de impressão;
+  - exposição de erro quando a impressão falha.
+- Testes de ViewModel cobrem os estados de início, conclusão e erro da impressão.
+- Compartilhamento, e-mail, WhatsApp e salvamento em arquivo continuam fora deste slice e permanecem reservados ao slice 4.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do PDF A4 - Slice 4/4 - Compartilhar e salvar PDF
+- A `PedidoPage` continua sendo a tela real do fluxo de pedido/recibo, sem criação de `ReciboPage`, rota própria, `Scaffold` próprio ou feature paralela.
+- O bloco `ReciboPedido` passou a exibir a ação `Compartilhar`, além das ações já existentes de salvar, novo recibo, histórico, clientes, imprimir e gerar PDF.
+- Ao acionar `Compartilhar`, a `PedidoPage` valida o recibo atual antes de abrir o popup de compartilhamento.
+- O popup de compartilhamento é um `AlertDialog` com as opções:
+  - `E-mail`;
+  - `WhatsApp`;
+  - `Salvar arquivo`.
+- A seleção de qualquer opção reutiliza os bytes gerados por `ReciboPdfService.gerarPdfA4`, usando:
+  - `PedidoPageViewModel.reciboEmEdicao`;
+  - `PedidoPageViewModel.cabecalhoEmpresa`.
+- Não existe layout paralelo para compartilhamento ou salvamento: prévia, impressão, compartilhamento e arquivo salvo usam a mesma geração de PDF A4.
+- Foi criado `ReciboCompartilhamentoService` em `lib/features/pedido_page/services/recibo_compartilhamento_service.dart`.
+- `ReciboCompartilhamentoService` recebe bytes de PDF já gerados e não acessa `BuildContext`, widgets, repository, SQLite ou cálculo monetário.
+- Para e-mail e WhatsApp, o serviço usa `share_plus` com arquivo PDF em memória via `XFile.fromData`.
+- O compartilhamento por e-mail e WhatsApp abre a folha de compartilhamento do sistema; a plataforma ou o usuário escolhe o aplicativo final quando não houver API confiável para direcionamento obrigatório.
+- Fallback real registrado:
+  - Web: `share_plus` pode usar a Web Share API e, quando aplicável, fallback de download ou `mailto`, mas não garante anexar/direcionar sempre para um app específico.
+  - Desktop: a folha de compartilhamento depende do suporte do sistema operacional e pode retornar resultado indeterminado.
+  - Mobile: Android/iOS exibem a folha nativa, mas o app receptor final é escolha do usuário e pode ignorar texto, assunto ou anexo conforme sua própria implementação.
+- Para salvar arquivo, o serviço usa `file_picker.saveFile` com bytes e nome sugerido `recibo-[numero].pdf`.
+- Fallback real de salvamento registrado:
+  - Desktop: abre seletor de caminho e grava os bytes quando o usuário confirma.
+  - Mobile: usa o fluxo de salvamento suportado pelo plugin, retornando o caminho quando a plataforma fornece.
+  - Web: inicia download pelo navegador; o caminho local não é exposto ao Flutter e o retorno pode ser `null` mesmo com download iniciado.
+- Cancelamento do popup, cancelamento da folha de compartilhamento e cancelamento do seletor de arquivo são tratados como cancelamento, não como erro.
+- Falhas de geração, compartilhamento ou salvamento são registradas em `PedidoPageViewModel.erro` com mensagem clara, sem quebrar a tela.
+- A `PedidoPageViewModel` continua sem acesso a `BuildContext`, `showDialog`, `Navigator`, `share_plus`, `file_picker` ou APIs de plataforma.
+- A ViewModel expõe estado reativo de compartilhamento:
+  - `compartilhandoPdf`;
+  - `validarReciboParaCompartilhamento`;
+  - `prepararCompartilhamentoPdf`;
+  - `iniciarCompartilhamentoPdf`;
+  - `concluirCompartilhamentoPdf`;
+  - `concluirSalvamentoPdf`;
+  - `cancelarCompartilhamentoPdf`;
+  - `registrarErroCompartilhamentoPdf`.
+- Enquanto o compartilhamento/salvamento está em andamento, os botões `Imprimir`, `Gerar PDF` e `Compartilhar` ficam desabilitados para evitar operações concorrentes sobre o mesmo documento.
+- Durante o processamento, o botão `Compartilhar` exibe `Compartilhando...` e o recibo exibe `Preparando compartilhamento...`.
+- Ao concluir compartilhamento, `ultimaAcaoRecibo` passa para `pdf-compartilhado` e o recibo exibe `Compartilhamento iniciado.`.
+- Ao concluir salvamento, `ultimaAcaoRecibo` passa para `pdf-salvo` e o recibo exibe `PDF salvo.`.
+- Ao cancelar, `ultimaAcaoRecibo` passa para `compartilhamento-cancelado` e o recibo exibe `Compartilhamento cancelado.`.
+- O nome sugerido do arquivo segue o padrão `recibo-[numero].pdf`, com sanitização simples do número para evitar caracteres inválidos.
+- O barrel público da feature `pedido_page` exporta `ReciboCompartilhamentoDialog` e `ReciboCompartilhamentoService`.
+- Testes de widget cobrem:
+  - acionamento do callback de `Compartilhar` no `ReciboPedido`;
+  - abertura do popup de compartilhamento na `PedidoPage`;
+  - compartilhamento por e-mail usando serviço fake;
+  - salvamento concluído usando serviço fake;
+  - cancelamento do seletor de salvamento;
+  - cancelamento do popup sem gerar PDF.
+- Testes de serviço cobrem:
+  - montagem dos parâmetros de compartilhamento com bytes e nome do PDF;
+  - cancelamento da folha de compartilhamento;
+  - salvamento com caminho retornado;
+  - cancelamento de salvamento fora da Web;
+  - fallback Web de download iniciado sem caminho local.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - Slice 1/5 - Tema e base visual
+- A `PedidoPage` continua sendo a tela inicial real do app e segue aberta por `lib/main.dart`, sem criação de nova rota ou `ReciboPage`.
+- O `MaterialApp` passou a usar `TemaApp.temaClaro()` e `TemaApp.temaEscuro()`, centralizando a identidade visual no tema customizado do projeto.
+- A paleta base do `TemaCores` foi alinhada à identidade da System Card - RS:
+  - `primaria` usa laranja de marca próximo de `#f7900a`;
+  - `destaque` usa azul de seções/títulos próximo de `#0c78ce`;
+  - `green` permanece reservado para sucesso, ações positivas e valores favoráveis.
+- As superfícies, bordas, containers e estados de tema claro/escuro continuam definidos no tema, evitando espalhar cores nos widgets da feature.
+- Este slice revisa a base visual da `PedidoPage`, mas não altera fluxo funcional, ViewModel, repository, serviços, formulário, tabela, resumo, cabeçalho ou dialogs.
+- Impacto em UI: sim, por troca de tema global e tokens semânticos. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - Slice 2/5 - Estrutura da PedidoPage
+- A `PedidoPage` permanece como Page agregadora única, mantendo a ordem visual:
+  - cabeçalho;
+  - recibo;
+  - resumo financeiro.
+- O texto técnico `Bloco inicial real de recibo integrado à composição do pedido.` foi removido da experiência final.
+- A área de recibo passou a usar uma seção visual real da própria `PedidoPage`, com título `Recibo`, superfície do `ColorScheme`, borda sutil e indicador lateral na cor primária.
+- O `ReciboPedido` continua sendo o bloco real de edição/visualização do recibo e não recebeu alteração de regra de negócio.
+- O `PedidoPageLayout` preserva rolagem vertical, largura máxima e empilhamento responsivo, com espaçamento ajustado para modo compacto e amplo.
+- O fundo da tela e do layout passa a usar `surfaceContainerLowest`, mantendo a base visual conectada ao tema global criado no slice 1.
+- Impacto em UI: sim, por remoção de placeholder técnico e ajuste da estrutura visual da tela. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - Slice 3/5 - Cabeçalho e ações
+- O `CabecalhoApp` mantém identidade, contatos, ações, menu, callbacks e estados desabilitados/em andamento já existentes.
+- A superfície do cabeçalho foi harmonizada com a base visual da `PedidoPage`, usando `ColorScheme.surface`, borda sutil e sombra baixa.
+- A marca `SYSTEM CARD - RS` ganhou maior hierarquia visual, preservando o laranja primário do tema.
+- O fallback de logo `SC` continua disponível, agora em superfície de container primário com borda da cor primária para manter legibilidade.
+- Os contatos continuam visíveis e responsivos, com ícones semânticos e cores vindas do `ColorScheme`.
+- As ações principais seguem a referência visual:
+  - `IMPRIMIR` em azul de destaque;
+  - `GERAR PDF` em verde de ação positiva;
+  - `MAIS OPÇÕES` como botão neutro contornado.
+- O `CabecalhoEditorDialog` foi harmonizado com a mesma linguagem visual, mantendo seleção, remoção e restauração de logo sem alterar persistência ou ViewModel.
+- Impacto em UI: sim, por modernização visual do cabeçalho, ações e dialog de edição. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - Slice 4/5 - Recibo editável e painéis
+- O `ReciboPedido` continua concentrado na composição do recibo, sem mover regra de negócio para widgets.
+- As ações do recibo permanecem visíveis e funcionais:
+  - salvar;
+  - novo recibo;
+  - histórico;
+  - clientes;
+  - imprimir;
+  - gerar PDF;
+  - compartilhar.
+- A área de ações do recibo foi agrupada em superfície operacional com borda sutil, preservando estados de carregamento, feedbacks e mensagens de erro.
+- `ReciboFormulario` mantém campos, formatadores, callbacks e chaves de teste, agora com hierarquia visual em azul e ícones semânticos nos campos.
+- `ProdutosServicosTabela` continua usando `ListView.separated`, mantendo edição inline, remoção de item e ausência de overflow em larguras menores.
+- A tabela recebeu cabeçalho azul em larguras amplas, ação `Adicionar item` em verde e destaque visual para o total do item.
+- `ClientesPainel` mantém estado local via `TextEditingController`, busca, cadastro e seleção, com superfície de cadastro e lista harmonizadas ao tema.
+- `HistoricoRecibosPainel` mantém busca, carregar, duplicar e excluir recibos, com cabeçalho e ações alinhados à mesma identidade visual.
+- Impacto em UI: sim, por modernização do recibo editável, formulário, tabela e painéis. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - Slice 5/5 - Resumo, visualização e fechamento
+- `ResumoPedido` mantém cálculo fora do widget e continua recebendo valores já formatados pela `PedidoPageViewModel`.
+- O valor a pagar na entrega segue como destaque visual em verde (`ColorScheme.tertiary`), preservando leitura rápida do saldo.
+- O resumo financeiro foi harmonizado com superfície clara, borda sutil, sombra baixa e título em azul de destaque.
+- `VisualizacaoRecibo` preserva a leitura de documento:
+  - cabeçalho da empresa;
+  - contatos;
+  - datas;
+  - cliente;
+  - telefone;
+  - observações;
+  - tabela de itens;
+  - totais finais.
+- A prévia visual do recibo mantém estrutura semelhante ao documento de referência, com marca em laranja, contatos com ícones semânticos e total final destacado em verde.
+- `ReciboCompartilhamentoDialog` e `ReciboPdfPreviewDialog` foram harmonizados com o tema por meio de título com ícone, superfície do `ColorScheme` e cantos de 8 px.
+- `ReciboPdfService` não foi alterado neste slice, porque a saída A4 já preserva a estrutura funcional esperada e os testes completos continuaram passando.
+- Validação final executada com `flutter analyze`, testes específicos do slice, teste da `PedidoPage` e `flutter test`.
+- Impacto em UI: sim, por modernização do resumo, visualização e dialogs. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.

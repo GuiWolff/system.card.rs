@@ -27,9 +27,16 @@ class ResumoPedido extends StatelessWidget {
       label: 'Resumo financeiro do pedido',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colorScheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.04),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -40,7 +47,7 @@ class ResumoPedido extends StatelessWidget {
                 'RESUMO',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: colorScheme.onSurface,
+                  color: colorScheme.secondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -113,7 +120,13 @@ class _CampoResumoPedido extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(rotulo, style: textTheme.labelLarge),
+          Text(
+            rotulo,
+            style: textTheme.labelLarge?.copyWith(
+              color: destaque ? corDestaque : colorScheme.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 6),
           if (onChanged == null)
             Container(
@@ -147,6 +160,9 @@ class _CampoResumoPedido extends StatelessWidget {
               decoration: InputDecoration(
                 errorText: mensagemErro,
                 prefixText: 'R\$ ',
+              ),
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,

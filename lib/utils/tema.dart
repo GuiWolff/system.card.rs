@@ -36,9 +36,11 @@ class TemaApp {
           secondary: temaCores.destaque,
           onSecondary: TemaCores.conteudoSobreDestaque,
           secondaryContainer: temaCores.containerDestaque,
-          onSecondaryContainer: TemaCores.conteudoSobreDestaque,
+          onSecondaryContainer: temaCores.textoDestaqueContainer,
           tertiary: temaCores.green,
           onTertiary: TemaCores.conteudoSobreDestaque,
+          tertiaryContainer: temaCores.containerSucesso,
+          onTertiaryContainer: temaCores.textoSucessoContainer,
           surface: temaCores.backgroundSecundario,
           onSurface: temaCores.texto,
           surfaceContainerLowest: temaCores.backgroundPrimario,
@@ -90,7 +92,9 @@ class TemaApp {
       checkboxTheme: _checkboxTheme(temaCores),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark ? TemaCores.neutro900 : TemaCores.verdeProfundo,
-        contentTextStyle: estiloTexto.bodyText.corContrastePrimaria,
+        contentTextStyle: estiloTexto.bodyText.base.copyWith(
+          color: TemaCores.conteudoSobreDestaque,
+        ),
         behavior: SnackBarBehavior.floating,
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -133,7 +137,10 @@ class TemaApp {
   FilledButtonThemeData _filledButtonTheme(TemaCores temaCores) {
     return FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(TemaMedidas.alturaControle),
+        minimumSize: const Size(
+          TemaMedidas.larguraMinimaControle,
+          TemaMedidas.alturaControle,
+        ),
         backgroundColor: temaCores.primaria,
         disabledBackgroundColor: temaCores.primaria.withValues(alpha: 0.42),
         foregroundColor: temaCores.contrastePrimaria,
@@ -151,7 +158,10 @@ class TemaApp {
   OutlinedButtonThemeData _outlinedButtonTheme(TemaCores temaCores) {
     return OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(TemaMedidas.alturaControle),
+        minimumSize: const Size(
+          TemaMedidas.larguraMinimaControle,
+          TemaMedidas.alturaControle,
+        ),
         backgroundColor: temaCores.backgroundSecundario,
         foregroundColor: temaCores.texto,
         disabledForegroundColor: temaCores.textoSutil,
@@ -256,13 +266,16 @@ class TemaService extends ChangeNotifier {
 class TemaCores {
   const TemaCores({this.isDark = false, this.temaEscuroMedio = true});
 
-  static const azulPrimario = Color(0xFF439BE2);
-  static const azulAcao = Color(0xFF2F9FF2);
-  static const verdeDestaque = Color(0xFFA2FF6C);
-  static const verdeEnergia = Color(0xFF3EEA9B);
-  static const verdeProfundo = Color(0xFF10231C);
-  static const verdeSuperficie = Color(0xFF18382D);
-  static const conteudoSobreDestaque = Color(0xFF10231C);
+  static const laranjaPrimario = Color(0xFFF7900A);
+  static const laranjaAcao = Color(0xFFE67F00);
+  static const azulDestaque = Color(0xFF0C78CE);
+  static const azulDestaqueEscuro = Color(0xFF6DB7F2);
+  static const verdeDestaque = Color(0xFF168A4A);
+  static const verdeEnergia = Color(0xFF45D483);
+  static const verdeProfundo = Color(0xFF103B2B);
+  static const verdeSuperficie = Color(0xFF173D2E);
+  static const conteudoSobrePrimaria = Color(0xFF1F1608);
+  static const conteudoSobreDestaque = Color(0xFFFFFFFF);
   static const neutro950 = Color(0xFF0B0F12);
   static const neutro900 = Color(0xFF141414);
   static const neutro800 = Color(0xFF202428);
@@ -281,58 +294,68 @@ class TemaCores {
   final bool isDark;
   final bool temaEscuroMedio;
 
-  Color get primaria => azulPrimario;
+  Color get primaria => laranjaPrimario;
 
-  Color get acaoPrimaria => azulAcao;
+  Color get acaoPrimaria => laranjaAcao;
 
-  Color get destaque => verdeDestaque;
+  Color get destaque => isDark ? azulDestaqueEscuro : azulDestaque;
 
-  Color get contrastePrimaria => Colors.white;
+  Color get contrastePrimaria => conteudoSobrePrimaria;
 
   Color get textoComum =>
-      isDark ? const Color(0xFFEAF0F6) : const Color(0xFF15171A);
+      isDark ? const Color(0xFFEAF0F6) : const Color(0xFF171A1F);
 
   Color get texto => textoComum;
 
-  Color get textoSecundario => isDark ? const Color(0xFFC7D8D0) : neutro500;
+  Color get textoSecundario => isDark ? const Color(0xFFC9D6E2) : neutro600;
 
-  Color get textoSutil => isDark ? const Color(0xFF8FB6A6) : neutro400;
+  Color get textoSutil => isDark ? const Color(0xFF8EA2B5) : neutro400;
 
-  Color get backgroundPrimario =>
-      isDark ? (temaEscuroMedio ? neutro900 : neutro950) : neutro050;
+  Color get backgroundPrimario => isDark
+      ? (temaEscuroMedio ? neutro900 : neutro950)
+      : const Color(0xFFF6F8FB);
 
   Color get backgroundSecundario =>
-      isDark ? const Color(0xFF1A1D20) : Colors.white;
+      isDark ? const Color(0xFF1A1E23) : Colors.white;
 
   Color get surfaceBaixa =>
-      isDark ? _camadaPrimariaEscura(0.08) : const Color(0xFFF1F5F8);
+      isDark ? _camadaPrimariaEscura(0.08) : const Color(0xFFF1F5F9);
 
   Color get surfaceAlta =>
-      isDark ? _camadaPrimariaEscura(0.14) : const Color(0xFFFBFCFD);
+      isDark ? _camadaPrimariaEscura(0.14) : const Color(0xFFFBFCFE);
 
   Color get surfaceMaisAlta =>
-      isDark ? _camadaPrimariaEscura(0.20) : const Color(0xFFEFF4F8);
+      isDark ? _camadaPrimariaEscura(0.20) : const Color(0xFFEAF1F8);
 
   Color get campo => backgroundSecundario;
 
-  Color get borda => isDark ? const Color(0xFF2B4038) : neutro150;
+  Color get borda => isDark ? const Color(0xFF35414C) : neutro150;
 
-  Color get outline => isDark ? const Color(0xFF3C5A4E) : neutro200;
+  Color get outline => isDark ? const Color(0xFF46596A) : neutro200;
 
-  Color get icons => isDark ? const Color(0xFFC7D8D0) : neutro600;
+  Color get icons => isDark ? const Color(0xFFC9D6E2) : neutro600;
 
-  Color get green => isDark ? verdeEnergia : const Color(0xFF00A676);
+  Color get green => isDark ? verdeEnergia : verdeDestaque;
 
   Color get red => isDark ? erroEscuro : erroClaro;
 
   Color get containerPrimario =>
-      isDark ? const Color(0xFF12385A) : const Color(0xFFE8F4FF);
+      isDark ? const Color(0xFF4A2A08) : const Color(0xFFFFE6C4);
 
   Color get textoPrimarioContainer =>
-      isDark ? const Color(0xFFD7ECFF) : const Color(0xFF10395B);
+      isDark ? const Color(0xFFFFD8A6) : const Color(0xFF3A2108);
 
   Color get containerDestaque =>
-      isDark ? const Color(0xFF2D4B24) : const Color(0xFFE9FFD9);
+      isDark ? const Color(0xFF0A3558) : const Color(0xFFDDEFFF);
+
+  Color get textoDestaqueContainer =>
+      isDark ? const Color(0xFFD8EDFF) : const Color(0xFF08385F);
+
+  Color get containerSucesso =>
+      isDark ? verdeSuperficie : const Color(0xFFDFF6E9);
+
+  Color get textoSucessoContainer =>
+      isDark ? const Color(0xFFC9F7DE) : const Color(0xFF0D3A24);
 
   Color _camadaPrimariaEscura(double alpha) {
     return Color.alphaBlend(
@@ -418,6 +441,7 @@ abstract final class TemaTipografia {
 
 abstract final class TemaMedidas {
   static const alturaControle = 46.0;
+  static const larguraMinimaControle = 64.0;
   static const raioControle = 4.0;
   static const raioCheckbox = 4.0;
   static const raioCard = 8.0;

@@ -29,6 +29,9 @@ class PedidoPageViewModel {
        _historico = Rx<List<Recibo>>(const <Recibo>[]),
        _carregando = Rx<bool>(false),
        _salvando = Rx<bool>(false),
+       _gerandoPdf = Rx<bool>(false),
+       _imprimindoPdf = Rx<bool>(false),
+       _compartilhandoPdf = Rx<bool>(false),
        _erro = Rx<String?>(null),
        _reciboAtualSalvo = Rx<bool>(false),
        _ultimaAcaoRecibo = Rx<String?>(null),
@@ -53,6 +56,9 @@ class PedidoPageViewModel {
   final Rx<List<Recibo>> _historico;
   final Rx<bool> _carregando;
   final Rx<bool> _salvando;
+  final Rx<bool> _gerandoPdf;
+  final Rx<bool> _imprimindoPdf;
+  final Rx<bool> _compartilhandoPdf;
   final Rx<String?> _erro;
   final Rx<bool> _reciboAtualSalvo;
   final Rx<String?> _ultimaAcaoRecibo;
@@ -78,6 +84,12 @@ class PedidoPageViewModel {
   bool get carregando => _carregando.value;
 
   bool get salvando => _salvando.value;
+
+  bool get gerandoPdf => _gerandoPdf.value;
+
+  bool get imprimindoPdf => _imprimindoPdf.value;
+
+  bool get compartilhandoPdf => _compartilhandoPdf.value;
 
   String? get erro => _erro.value;
 
@@ -143,6 +155,9 @@ class PedidoPageViewModel {
     final podeExecutar =
         !_carregando.value &&
         !_salvando.value &&
+        !_gerandoPdf.value &&
+        !_imprimindoPdf.value &&
+        !_compartilhandoPdf.value &&
         !_carregandoCabecalho.value &&
         !_salvandoCabecalho.value;
 
@@ -383,6 +398,127 @@ class PedidoPageViewModel {
     _erro.value = null;
   }
 
+  bool validarReciboParaGeracaoPdf() {
+    return _validarReciboParaDocumento();
+  }
+
+  bool validarReciboParaImpressao() {
+    return _validarReciboParaDocumento();
+  }
+
+  bool validarReciboParaCompartilhamento() {
+    return _validarReciboParaDocumento();
+  }
+
+  bool _validarReciboParaDocumento() {
+    final erros = reciboEmEdicao.validar();
+    if (erros.isNotEmpty) {
+      _ultimaAcaoRecibo.value = null;
+      _erro.value = erros.first;
+      return false;
+    }
+
+    _erro.value = null;
+    return true;
+  }
+
+  void iniciarGeracaoPdf() {
+    _gerandoPdf.value = true;
+    _ultimaAcaoRecibo.value = 'pdf-gerando';
+    _erro.value = null;
+  }
+
+  void concluirGeracaoPdf() {
+    _gerandoPdf.value = false;
+    _ultimaAcaoRecibo.value = 'pdf-gerado';
+    _erro.value = null;
+  }
+
+  void registrarErroGeracaoPdf(String mensagem) {
+    _gerandoPdf.value = false;
+    _ultimaAcaoRecibo.value = null;
+    _erro.value = mensagem;
+  }
+
+  void iniciarImpressao({bool acionadoPeloCabecalho = false}) {
+    _imprimindoPdf.value = true;
+    _ultimaAcaoRecibo.value = 'impressao-em-andamento';
+    _erro.value = null;
+
+    if (acionadoPeloCabecalho) {
+      _feedbackCabecalho.value = null;
+      _ultimaAcaoCabecalho.value = 'imprimir';
+      _acaoCabecalhoEmAndamento.value = CabecalhoAcaoId.imprimir;
+    }
+  }
+
+  void concluirImpressao({
+    bool cancelada = false,
+    bool acionadoPeloCabecalho = false,
+  }) {
+    _imprimindoPdf.value = false;
+    _ultimaAcaoRecibo.value = cancelada
+        ? 'impressao-cancelada'
+        : 'impressao-concluida';
+    _erro.value = null;
+
+    if (acionadoPeloCabecalho) {
+      _feedbackCabecalho.value = cancelada
+          ? 'Impressão cancelada.'
+          : 'Recibo enviado para impressão.';
+      _acaoCabecalhoEmAndamento.value = null;
+    }
+  }
+
+  void registrarErroImpressao(
+    String mensagem, {
+    bool acionadoPeloCabecalho = false,
+  }) {
+    _imprimindoPdf.value = false;
+    _ultimaAcaoRecibo.value = null;
+    _erro.value = mensagem;
+
+    if (acionadoPeloCabecalho) {
+      _feedbackCabecalho.value = mensagem;
+      _acaoCabecalhoEmAndamento.value = null;
+    }
+  }
+
+  void prepararCompartilhamentoPdf() {
+    _ultimaAcaoRecibo.value = 'compartilhamento-preparado';
+    _erro.value = null;
+  }
+
+  void iniciarCompartilhamentoPdf() {
+    _compartilhandoPdf.value = true;
+    _ultimaAcaoRecibo.value = 'compartilhando-pdf';
+    _erro.value = null;
+  }
+
+  void concluirCompartilhamentoPdf() {
+    _compartilhandoPdf.value = false;
+    _ultimaAcaoRecibo.value = 'pdf-compartilhado';
+    _erro.value = null;
+  }
+
+  void concluirSalvamentoPdf() {
+    _compartilhandoPdf.value = false;
+    _ultimaAcaoRecibo.value = 'pdf-salvo';
+    _erro.value = null;
+  }
+
+  void cancelarCompartilhamentoPdf() {
+    _compartilhandoPdf.value = false;
+    _ultimaAcaoRecibo.value = 'compartilhamento-cancelado';
+    _erro.value = null;
+  }
+
+  void registrarErroCompartilhamentoPdf(String mensagem) {
+    _compartilhandoPdf.value = false;
+    _ultimaAcaoRecibo.value = null;
+    _erro.value = mensagem;
+  }
+
   Future<void> solicitarImpressaoCabecalho() async {
     await _executarAcaoCabecalho(
       id: CabecalhoAcaoId.imprimir,
@@ -549,6 +685,9 @@ class PedidoPageViewModel {
     _historico.dispose();
     _carregando.dispose();
     _salvando.dispose();
+    _gerandoPdf.dispose();
+    _imprimindoPdf.dispose();
+    _compartilhandoPdf.dispose();
     _erro.dispose();
     _reciboAtualSalvo.dispose();
     _ultimaAcaoRecibo.dispose();
@@ -608,6 +747,9 @@ class PedidoPageViewModel {
     if (_acaoCabecalhoEmAndamento.value != null ||
         _carregando.value ||
         _salvando.value ||
+        _gerandoPdf.value ||
+        _imprimindoPdf.value ||
+        _compartilhandoPdf.value ||
         _carregandoCabecalho.value ||
         _salvandoCabecalho.value) {
       return;

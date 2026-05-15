@@ -30,17 +30,30 @@ class ReciboFormulario extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Dados do Recibo', style: textTheme.titleMedium),
+        Text(
+          'Dados do Recibo',
+          style: textTheme.titleMedium?.copyWith(
+            color: colorScheme.secondary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
             final largura = constraints.maxWidth;
-            final usarDuasColunas = largura >= 760;
-            final larguraCampo = usarDuasColunas ? (largura - 12) / 2 : largura;
+            final colunas = largura >= 900
+                ? 3
+                : largura >= 640
+                ? 2
+                : 1;
+            final larguraCampo = colunas == 1
+                ? largura
+                : (largura - (12 * (colunas - 1))) / colunas;
 
             return Wrap(
               spacing: 12,
@@ -52,6 +65,7 @@ class ReciboFormulario extends StatelessWidget {
                   valorInicial: recibo.numero,
                   helperText: 'Gerado automaticamente pelo sistema',
                   readOnly: true,
+                  prefixIcon: Icons.confirmation_number_outlined,
                   onChanged: onNumeroChanged,
                   textInputAction: TextInputAction.next,
                 ),
@@ -60,6 +74,7 @@ class ReciboFormulario extends StatelessWidget {
                   label: 'Recebido',
                   valorInicial: _formatarData(recibo.dataRecebimento),
                   hintText: 'dd/mm/aaaa',
+                  prefixIcon: Icons.calendar_today_outlined,
                   keyboardType: TextInputType.datetime,
                   onChanged: (valor) {
                     final data = _converterData(valor);
@@ -74,6 +89,7 @@ class ReciboFormulario extends StatelessWidget {
                   label: 'Entrega',
                   valorInicial: _formatarData(recibo.dataEntrega),
                   hintText: 'dd/mm/aaaa',
+                  prefixIcon: Icons.event_available_outlined,
                   keyboardType: TextInputType.datetime,
                   onChanged: (valor) {
                     final data = _converterData(valor);
@@ -87,6 +103,7 @@ class ReciboFormulario extends StatelessWidget {
                   largura: larguraCampo,
                   label: 'Cliente',
                   valorInicial: recibo.cliente,
+                  prefixIcon: Icons.person_outline,
                   onChanged: onClienteChanged,
                   textInputAction: TextInputAction.next,
                 ),
@@ -96,6 +113,7 @@ class ReciboFormulario extends StatelessWidget {
                   valorInicial: TelefoneInputFormatter.formatar(
                     recibo.telefone,
                   ),
+                  prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   inputFormatters: const [TelefoneInputFormatter()],
                   onChanged: onTelefoneChanged,
@@ -108,6 +126,7 @@ class ReciboFormulario extends StatelessWidget {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  prefixIcon: Icons.payments_outlined,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
                   ],
@@ -120,6 +139,7 @@ class ReciboFormulario extends StatelessWidget {
                   label: 'Observações',
                   valorInicial: recibo.observacoes,
                   maxLines: 3,
+                  prefixIcon: Icons.notes_outlined,
                   onChanged: onObservacoesChanged,
                   textInputAction: TextInputAction.newline,
                 ),
@@ -191,6 +211,7 @@ class _CampoFormulario extends StatelessWidget {
     this.textInputAction,
     this.helperText,
     this.readOnly = false,
+    this.prefixIcon,
   });
 
   final double largura;
@@ -204,6 +225,7 @@ class _CampoFormulario extends StatelessWidget {
   final TextInputAction? textInputAction;
   final String? helperText;
   final bool readOnly;
+  final IconData? prefixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +238,7 @@ class _CampoFormulario extends StatelessWidget {
           labelText: label,
           hintText: hintText,
           helperText: helperText,
+          prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
         ),
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,

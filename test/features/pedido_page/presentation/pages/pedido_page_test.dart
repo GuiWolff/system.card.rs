@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:system_card_rs/features/pedido_page/data/repositories/cabecalho_preferencias_repository.dart';
@@ -25,7 +27,7 @@ void main() {
       find.text(
         'Bloco inicial real de recibo integrado à composição do pedido.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Recibo'), findsOneWidget);
     expect(find.text('Dados do Recibo'), findsOneWidget);
@@ -90,7 +92,7 @@ void main() {
     expect(find.text('R\$ 125,00'), findsWidgets);
   });
 
-  testWidgets('PedidoPage conecta callbacks temporários ao estado da tela', (
+  testWidgets('PedidoPage mantém edição do recibo integrada ao resumo', (
     WidgetTester tester,
   ) async {
     final viewModel = PedidoPageViewModel();
@@ -98,16 +100,6 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(home: PedidoPage(viewModel: viewModel)),
-    );
-
-    await tester.tap(find.text('IMPRIMIR'));
-    await tester.pumpAndSettle();
-
-    expect(viewModel.ultimaAcaoCabecalho, 'imprimir');
-    expect(viewModel.ultimaAcaoRecibo, 'imprimir-preparado');
-    expect(
-      find.text('Impressão preparada para integração futura.'),
-      findsWidgets,
     );
 
     final botaoAdicionar = find.text('Adicionar item');
@@ -131,6 +123,411 @@ void main() {
 
     expect(viewModel.totalPedidoCentavos, 3000);
     expect(find.text('R\$ 30,00'), findsWidgets);
+  });
+
+  testWidgets('PedidoPage imprime o mesmo PDF pelo recibo', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfBytes = Uint8List.fromList([37, 80, 68, 70]);
+    final pdfService = _ReciboPdfServiceFake(pdfBytes);
+    final impressaoService = _ReciboImpressaoServiceFake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboImpressaoService: impressaoService,
+        ),
+      ),
+    );
+
+    final botaoImprimir = find.widgetWithText(OutlinedButton, 'Imprimir');
+    await tester.ensureVisible(botaoImprimir);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoImprimir);
+    await tester.pumpAndSettle();
+
+    expect(pdfService.chamadas, 1);
+    expect(impressaoService.pdfBytes, same(pdfBytes));
+    expect(impressaoService.nomeArquivo, 'recibo-0042.pdf');
+    expect(viewModel.imprimindoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'impressao-concluida');
+    expect(find.text('Recibo enviado para impressão.'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage imprime o mesmo PDF pelo cabeçalho', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45]);
+    final pdfService = _ReciboPdfServiceFake(pdfBytes);
+    final impressaoService = _ReciboImpressaoServiceFake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboImpressaoService: impressaoService,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('IMPRIMIR'));
+    await tester.pumpAndSettle();
+
+    expect(viewModel.ultimaAcaoCabecalho, 'imprimir');
+    expect(viewModel.ultimaAcaoRecibo, 'impressao-concluida');
+    expect(impressaoService.pdfBytes, same(pdfBytes));
+    expect(impressaoService.nomeArquivo, 'recibo-0042.pdf');
+  });
+
+  testWidgets('PedidoPage expõe erro quando a impressão falha', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfService = _ReciboPdfServiceFake(Uint8List.fromList([1, 2, 3]));
+    final impressaoService = _ReciboImpressaoServiceFake(falhar: true);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboImpressaoService: impressaoService,
+        ),
+      ),
+    );
+
+    final botaoImprimir = find.widgetWithText(OutlinedButton, 'Imprimir');
+    await tester.ensureVisible(botaoImprimir);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoImprimir);
+    await tester.pumpAndSettle();
+
+    expect(viewModel.imprimindoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, isNull);
+    expect(
+      viewModel.erro,
+      'Não foi possível imprimir o recibo: Falha simulada na impressão.',
+    );
+    expect(
+      find.text(
+        'Não foi possível imprimir o recibo: Falha simulada na impressão.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('PedidoPage abre popup de compartilhamento do PDF', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+
+    await tester.pumpWidget(
+      MaterialApp(home: PedidoPage(viewModel: viewModel)),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Compartilhar recibo'), findsOneWidget);
+    expect(find.text('E-mail'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
+    expect(find.text('Salvar arquivo'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage compartilha PDF por e-mail com serviço fake', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45, 49]);
+    final pdfService = _ReciboPdfServiceFake(pdfBytes);
+    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboCompartilhamentoService: compartilhamentoService,
+        ),
+      ),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('E-mail'));
+    await tester.pumpAndSettle();
+
+    expect(pdfService.chamadas, 1);
+    expect(compartilhamentoService.destino, 'email');
+    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
+    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
+    expect(viewModel.compartilhandoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
+    expect(find.text('Compartilhamento iniciado.'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage salva PDF e trata cancelamento do seletor', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfService = _ReciboPdfServiceFake(Uint8List.fromList([1, 2, 3]));
+    final compartilhamentoService = _ReciboCompartilhamentoServiceFake(
+      resultado: const ReciboCompartilhamentoResultado(
+        status: ReciboCompartilhamentoStatus.cancelado,
+        mensagem: 'Salvamento cancelado.',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboCompartilhamentoService: compartilhamentoService,
+        ),
+      ),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar arquivo'));
+    await tester.pumpAndSettle();
+
+    expect(compartilhamentoService.destino, 'salvar');
+    expect(viewModel.compartilhandoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'compartilhamento-cancelado');
+    expect(find.text('Compartilhamento cancelado.'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage abre AlertDialog de PDF pelo recibo', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfPreviewBuilder: _previewPdfTeste,
+        ),
+      ),
+    );
+
+    final botaoGerarPdf = find.widgetWithText(OutlinedButton, 'Gerar PDF');
+    await tester.ensureVisible(botaoGerarPdf);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoGerarPdf);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Prévia do PDF'), findsOneWidget);
+    expect(find.textContaining('recibo-0042.pdf'), findsOneWidget);
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-gerado');
+    expect(viewModel.gerandoPdf, isFalse);
+  });
+
+  testWidgets('PedidoPage abre AlertDialog de PDF pelo cabeçalho', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfPreviewBuilder: _previewPdfTeste,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('GERAR PDF'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.textContaining('recibo-0042.pdf'), findsOneWidget);
+    expect(viewModel.ultimaAcaoCabecalho, 'gerar-pdf');
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-gerado');
+  });
+
+  testWidgets('PedidoPage não abre PDF quando recibo é inválido', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfPreviewBuilder: _previewPdfTeste,
+        ),
+      ),
+    );
+
+    final botaoGerarPdf = find.widgetWithText(OutlinedButton, 'Gerar PDF');
+    await tester.ensureVisible(botaoGerarPdf);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoGerarPdf);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(viewModel.erro, 'O número do recibo é obrigatório.');
+  });
+
+  testWidgets('PedidoPage abre popup e compartilha PDF por e-mail', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfBytes = Uint8List.fromList([37, 80, 68, 70]);
+    final pdfService = _ReciboPdfServiceFake(pdfBytes);
+    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboCompartilhamentoService: compartilhamentoService,
+        ),
+      ),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Compartilhar recibo'), findsOneWidget);
+    expect(find.text('E-mail'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
+    expect(find.text('Salvar arquivo'), findsOneWidget);
+
+    await tester.tap(find.text('E-mail'));
+    await tester.pumpAndSettle();
+
+    expect(pdfService.chamadas, 1);
+    expect(compartilhamentoService.destino, 'email');
+    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
+    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
+    expect(viewModel.compartilhandoPdf, isFalse);
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
+    expect(find.text('Compartilhamento iniciado.'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage salva PDF pelo popup de compartilhamento', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45]);
+    final pdfService = _ReciboPdfServiceFake(pdfBytes);
+    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(
+          viewModel: viewModel,
+          reciboPdfService: pdfService,
+          reciboCompartilhamentoService: compartilhamentoService,
+        ),
+      ),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar arquivo'));
+    await tester.pumpAndSettle();
+
+    expect(pdfService.chamadas, 1);
+    expect(compartilhamentoService.destino, 'salvar');
+    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
+    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
+    expect(viewModel.ultimaAcaoRecibo, 'pdf-salvo');
+    expect(find.text('PDF salvo.'), findsOneWidget);
+  });
+
+  testWidgets('PedidoPage trata cancelamento do popup de compartilhamento', (
+    WidgetTester tester,
+  ) async {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+    _preencherReciboParaPdf(viewModel);
+    final pdfService = _ReciboPdfServiceFake(Uint8List.fromList([1, 2, 3]));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PedidoPage(viewModel: viewModel, reciboPdfService: pdfService),
+      ),
+    );
+
+    final botaoCompartilhar = find.widgetWithText(
+      OutlinedButton,
+      'Compartilhar',
+    );
+    await tester.ensureVisible(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoCompartilhar);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(pdfService.chamadas, 0);
+    expect(viewModel.ultimaAcaoRecibo, 'compartilhamento-cancelado');
+    expect(find.text('Compartilhamento cancelado.'), findsOneWidget);
   });
 
   testWidgets('PedidoPage conecta menu do cabeçalho à ViewModel', (
@@ -376,6 +773,116 @@ Future<void> _pumpPedidoPageEmTamanho(WidgetTester tester, Size tamanho) async {
   tester.view.devicePixelRatio = 1;
 
   await tester.pumpWidget(const MaterialApp(home: PedidoPage()));
+}
+
+void _preencherReciboParaPdf(PedidoPageViewModel viewModel) {
+  viewModel.atualizarNumero('0042');
+  viewModel.atualizarCliente('Cliente PDF');
+  viewModel.atualizarTelefone('51999990000');
+  viewModel.adicionarItem(
+    const ItemRecibo(
+      quantidade: 1,
+      descricao: 'Crachá PVC',
+      valorUnitarioCentavos: 2500,
+    ),
+  );
+}
+
+Widget _previewPdfTeste(
+  BuildContext context,
+  Uint8List pdfBytes,
+  String nomeArquivo,
+) {
+  return Center(
+    child: Text('Prévia de teste: ${pdfBytes.length} bytes - $nomeArquivo'),
+  );
+}
+
+class _ReciboPdfServiceFake extends ReciboPdfService {
+  _ReciboPdfServiceFake(this.bytes);
+
+  final Uint8List bytes;
+  int chamadas = 0;
+
+  @override
+  Future<Uint8List> gerarPdfA4({
+    required Recibo recibo,
+    required CabecalhoEmpresa cabecalho,
+  }) async {
+    chamadas++;
+    return bytes;
+  }
+}
+
+class _ReciboImpressaoServiceFake extends ReciboImpressaoService {
+  _ReciboImpressaoServiceFake({this.falhar = false});
+
+  final bool falhar;
+  Uint8List? pdfBytes;
+  String? nomeArquivo;
+
+  @override
+  Future<bool> imprimirPdf({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) async {
+    if (falhar) {
+      throw StateError('Falha simulada na impressão.');
+    }
+
+    this.pdfBytes = pdfBytes;
+    this.nomeArquivo = nomeArquivo;
+    return true;
+  }
+}
+
+class _ReciboCompartilhamentoServiceFake extends ReciboCompartilhamentoService {
+  _ReciboCompartilhamentoServiceFake({
+    this.resultado = const ReciboCompartilhamentoResultado(
+      status: ReciboCompartilhamentoStatus.concluido,
+      mensagem: 'Compartilhamento iniciado.',
+    ),
+  });
+
+  final ReciboCompartilhamentoResultado resultado;
+  String? destino;
+  Uint8List? pdfBytes;
+  String? nomeArquivo;
+
+  @override
+  Future<ReciboCompartilhamentoResultado> compartilharPorEmail({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+    Rect? origemCompartilhamento,
+  }) async {
+    destino = 'email';
+    this.pdfBytes = pdfBytes;
+    this.nomeArquivo = nomeArquivo;
+    return resultado;
+  }
+
+  @override
+  Future<ReciboCompartilhamentoResultado> compartilharPorWhatsapp({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+    Rect? origemCompartilhamento,
+  }) async {
+    destino = 'whatsapp';
+    this.pdfBytes = pdfBytes;
+    this.nomeArquivo = nomeArquivo;
+    return resultado;
+  }
+
+  @override
+  Future<ReciboCompartilhamentoResultado> salvarArquivo({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) async {
+    destino = 'salvar';
+    this.pdfBytes = pdfBytes;
+    this.nomeArquivo = nomeArquivo;
+    return resultado;
+  }
 }
 
 class _BlocoTeste extends StatelessWidget {

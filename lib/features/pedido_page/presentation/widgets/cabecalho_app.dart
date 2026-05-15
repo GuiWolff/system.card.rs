@@ -37,9 +37,16 @@ class CabecalhoApp extends StatelessWidget {
       label: 'Cabeçalho da empresa',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colorScheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.06),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -246,7 +253,7 @@ class _IdentidadeEmpresa extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _LogoEmpresa(cabecalho: cabecalho, tamanho: tamanhoLogo),
-        const SizedBox(width: 14),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,18 +263,22 @@ class _IdentidadeEmpresa extends StatelessWidget {
                 cabecalho.nomeEmpresa,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.titleLarge?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w800,
-                ),
+                style:
+                    (tamanhoLogo >= CabecalhoApp._logoDesktop
+                            ? textTheme.headlineSmall
+                            : textTheme.titleLarge)
+                        ?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
               ),
               const SizedBox(height: 4),
               Text(
                 cabecalho.subtitulo,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -354,13 +365,14 @@ class _LogoFallback extends StatelessWidget {
         height: tamanho,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: colorScheme.primary,
-          borderRadius: BorderRadius.circular(8),
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.primary),
         ),
         child: Text(
           'SC',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: colorScheme.onPrimary,
+            color: colorScheme.primary,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -376,6 +388,8 @@ class _ContatosEmpresa extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Wrap(
       spacing: 14,
       runSpacing: 10,
@@ -385,22 +399,26 @@ class _ContatosEmpresa extends StatelessWidget {
           icon: Icons.alternate_email,
           label: 'Instagram',
           texto: cabecalho.instagram,
+          corIcone: colorScheme.primary,
         ),
         _ContatoItem(
           icon: Icons.chat_bubble_outline,
           label: 'WhatsApp',
           texto: cabecalho.whatsapp,
+          corIcone: colorScheme.tertiary,
         ),
         _ContatoItem(
           icon: Icons.call_outlined,
           label: 'Telefone',
           texto: cabecalho.telefone,
+          corIcone: colorScheme.onSurface,
         ),
         _ContatoItem(
           icon: Icons.location_on_outlined,
           label: 'Endereço',
           texto: cabecalho.endereco,
           larguraMaxima: 360,
+          corIcone: colorScheme.onSurface,
         ),
       ],
     );
@@ -412,12 +430,14 @@ class _ContatoItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.texto,
+    required this.corIcone,
     this.larguraMaxima = 190,
   });
 
   final IconData icon;
   final String label;
   final String texto;
+  final Color corIcone;
   final double larguraMaxima;
 
   @override
@@ -431,7 +451,7 @@ class _ContatoItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: colorScheme.primary),
+            Icon(icon, size: 18, color: corIcone),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -541,6 +561,7 @@ class _BotaoCabecalho extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final icon = acao.emAndamento
         ? const SizedBox.square(
             dimension: 18,
@@ -551,11 +572,21 @@ class _BotaoCabecalho extends StatelessWidget {
     final botao = switch (acao.id) {
       CabecalhoAcaoId.imprimir => FilledButton.icon(
         onPressed: acao.habilitada ? onPressed : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.secondary,
+          foregroundColor: colorScheme.onSecondary,
+          minimumSize: const Size(132, 48),
+        ),
         icon: icon,
         label: Text(acao.rotulo),
       ),
-      CabecalhoAcaoId.gerarPdf => FilledButton.tonalIcon(
+      CabecalhoAcaoId.gerarPdf => FilledButton.icon(
         onPressed: acao.habilitada ? onPressed : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.tertiary,
+          foregroundColor: colorScheme.onTertiary,
+          minimumSize: const Size(132, 48),
+        ),
         icon: icon,
         label: Text(acao.rotulo),
       ),
@@ -582,6 +613,10 @@ class _BotaoCabecalho extends StatelessWidget {
         child: IgnorePointer(
           child: OutlinedButton.icon(
             onPressed: acao.habilitada ? () {} : null,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(132, 48),
+              side: BorderSide(color: colorScheme.outlineVariant),
+            ),
             icon: icon,
             label: Text(acao.rotulo),
           ),

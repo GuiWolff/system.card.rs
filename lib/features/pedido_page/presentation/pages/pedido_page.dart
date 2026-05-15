@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:system_card_rs/features/pedido_page/data/repositories/cabecalho_preferencias_repository.dart';
 import 'package:system_card_rs/features/pedido_page/data/datasources/recibo_database.dart';
@@ -8,14 +11,30 @@ import 'package:system_card_rs/features/pedido_page/presentation/viewmodels/pedi
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/cabecalho_app.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/cabecalho_editor_dialog.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/pedido_page_layout.dart';
+import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_compartilhamento_dialog.dart';
+import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_pdf_preview_dialog.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_pedido.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/resumo_pedido.dart';
+import 'package:system_card_rs/features/pedido_page/services/recibo_compartilhamento_service.dart';
+import 'package:system_card_rs/features/pedido_page/services/recibo_impressao_service.dart';
+import 'package:system_card_rs/features/pedido_page/services/recibo_pdf_service.dart';
 import 'package:system_card_rs/observable/obx.dart';
 
 class PedidoPage extends StatefulWidget {
-  const PedidoPage({super.key, this.viewModel});
+  const PedidoPage({
+    super.key,
+    this.viewModel,
+    this.reciboPdfService = const ReciboPdfService(),
+    this.reciboImpressaoService = const ReciboImpressaoService(),
+    this.reciboCompartilhamentoService = const ReciboCompartilhamentoService(),
+    this.reciboPdfPreviewBuilder,
+  });
 
   final PedidoPageViewModel? viewModel;
+  final ReciboPdfService reciboPdfService;
+  final ReciboImpressaoService reciboImpressaoService;
+  final ReciboCompartilhamentoService reciboCompartilhamentoService;
+  final ReciboPdfPreviewContentBuilder? reciboPdfPreviewBuilder;
 
   @override
   State<PedidoPage> createState() => _PedidoPageState();
@@ -64,10 +83,9 @@ class _PedidoPageState extends State<PedidoPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: AppBar(title: const Text('Pedido')),
       body: PedidoPageLayout(
         cabecalho: Obx(
@@ -91,8 +109,12 @@ class _PedidoPageState extends State<PedidoPage> {
               CabecalhoApp(
                 cabecalho: _viewModel.cabecalhoEmpresa,
                 feedback: _viewModel.feedbackCabecalho,
-                onImprimir: _viewModel.solicitarImpressaoCabecalho,
-                onGerarPdf: _viewModel.solicitarGeracaoPdfCabecalho,
+                onImprimir: () {
+                  unawaited(_imprimirRecibo(acionadoPeloCabecalho: true));
+                },
+                onGerarPdf: () {
+                  unawaited(_abrirPreviaPdf(acionadoPeloCabecalho: true));
+                },
                 onMaisOpcoes: () =>
                     _viewModel.registrarAcaoCabecalho('mais-opcoes'),
                 onSelecionarMaisOpcao: _viewModel.selecionarOpcaoCabecalho,
@@ -100,12 +122,14 @@ class _PedidoPageState extends State<PedidoPage> {
             ],
           ),
         ),
-        recibo: _PedidoPagePlaceholderSection(
-          title: 'Recibo',
-          description:
-              'Bloco inicial real de recibo integrado à composição do pedido.',
-          titleStyle: textTheme.titleLarge,
-          child: ReciboPedido(viewModel: _viewModel),
+        recibo: _PedidoPageSection(
+          titulo: 'Recibo',
+          child: ReciboPedido(
+            viewModel: _viewModel,
+            onImprimir: _imprimirRecibo,
+            onCompartilharPdf: _abrirCompartilhamentoPdf,
+            onGerarPdf: _abrirPreviaPdf,
+          ),
         ),
         resumo: Obx(
           () => ResumoPedido(
@@ -154,6 +178,230 @@ class _PedidoPageState extends State<PedidoPage> {
 
     await _viewModel.salvarCabecalho();
   }
+
+  Future<void> _abrirPreviaPdf({bool acionadoPeloCabecalho = false}) async {
+    if (_viewModel.gerandoPdf ||
+        _viewModel.imprimindoPdf ||
+        _viewModel.compartilhandoPdf) {
+      return;
+    }
+
+    if (acionadoPeloCabecalho) {
+      _viewModel.registrarAcaoCabecalho('gerar-pdf');
+    }
+
+    await _viewModel.prepararProximoNumeroRecibo();
+    if (!_viewModel.validarReciboParaGeracaoPdf()) {
+      return;
+    }
+
+    _viewModel.prepararGeracaoPdf();
+    _viewModel.iniciarGeracaoPdf();
+
+    late final Uint8List pdfBytes;
+    try {
+      pdfBytes = await widget.reciboPdfService.gerarPdfA4(
+        recibo: _viewModel.reciboEmEdicao,
+        cabecalho: _viewModel.cabecalhoEmpresa,
+      );
+      _viewModel.concluirGeracaoPdf();
+    } catch (erro) {
+      _viewModel.registrarErroGeracaoPdf(_mensagemErroGeracaoPdf(erro));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ReciboPdfPreviewDialog(
+        pdfBytes: pdfBytes,
+        nomeArquivo: _nomeArquivoRecibo(),
+        previewBuilder: widget.reciboPdfPreviewBuilder,
+      ),
+    );
+  }
+
+  Future<void> _imprimirRecibo({bool acionadoPeloCabecalho = false}) async {
+    if (_viewModel.gerandoPdf ||
+        _viewModel.imprimindoPdf ||
+        _viewModel.compartilhandoPdf) {
+      return;
+    }
+
+    if (acionadoPeloCabecalho) {
+      _viewModel.registrarAcaoCabecalho('imprimir');
+    }
+
+    await _viewModel.prepararProximoNumeroRecibo();
+    if (!_viewModel.validarReciboParaImpressao()) {
+      return;
+    }
+
+    _viewModel.prepararImpressao();
+    _viewModel.iniciarImpressao(acionadoPeloCabecalho: acionadoPeloCabecalho);
+
+    try {
+      final pdfBytes = await widget.reciboPdfService.gerarPdfA4(
+        recibo: _viewModel.reciboEmEdicao,
+        cabecalho: _viewModel.cabecalhoEmpresa,
+      );
+      final impresso = await widget.reciboImpressaoService.imprimirPdf(
+        pdfBytes: pdfBytes,
+        nomeArquivo: _nomeArquivoRecibo(),
+      );
+      _viewModel.concluirImpressao(
+        cancelada: !impresso,
+        acionadoPeloCabecalho: acionadoPeloCabecalho,
+      );
+    } catch (erro) {
+      _viewModel.registrarErroImpressao(
+        _mensagemErroImpressao(erro),
+        acionadoPeloCabecalho: acionadoPeloCabecalho,
+      );
+    }
+  }
+
+  Future<void> _abrirCompartilhamentoPdf() async {
+    if (_viewModel.gerandoPdf ||
+        _viewModel.imprimindoPdf ||
+        _viewModel.compartilhandoPdf) {
+      return;
+    }
+
+    await _viewModel.prepararProximoNumeroRecibo();
+    if (!_viewModel.validarReciboParaCompartilhamento()) {
+      return;
+    }
+
+    _viewModel.prepararCompartilhamentoPdf();
+    final nomeArquivo = _nomeArquivoRecibo();
+    if (!mounted) {
+      return;
+    }
+
+    final opcao = await showDialog<ReciboCompartilhamentoOpcao>(
+      context: context,
+      builder: (dialogContext) => const ReciboCompartilhamentoDialog(),
+    );
+
+    if (opcao == null) {
+      _viewModel.cancelarCompartilhamentoPdf();
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    _viewModel.iniciarCompartilhamentoPdf();
+
+    try {
+      final pdfBytes = await widget.reciboPdfService.gerarPdfA4(
+        recibo: _viewModel.reciboEmEdicao,
+        cabecalho: _viewModel.cabecalhoEmpresa,
+      );
+      final resultado = await _executarCompartilhamento(
+        opcao: opcao,
+        pdfBytes: pdfBytes,
+        nomeArquivo: nomeArquivo,
+      );
+      _registrarResultadoCompartilhamento(opcao, resultado);
+    } catch (erro) {
+      _viewModel.registrarErroCompartilhamentoPdf(
+        _mensagemErroCompartilhamento(erro),
+      );
+    }
+  }
+
+  Future<ReciboCompartilhamentoResultado> _executarCompartilhamento({
+    required ReciboCompartilhamentoOpcao opcao,
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) {
+    return switch (opcao) {
+      ReciboCompartilhamentoOpcao.email =>
+        widget.reciboCompartilhamentoService.compartilharPorEmail(
+          pdfBytes: pdfBytes,
+          nomeArquivo: nomeArquivo,
+        ),
+      ReciboCompartilhamentoOpcao.whatsapp =>
+        widget.reciboCompartilhamentoService.compartilharPorWhatsapp(
+          pdfBytes: pdfBytes,
+          nomeArquivo: nomeArquivo,
+        ),
+      ReciboCompartilhamentoOpcao.salvarArquivo =>
+        widget.reciboCompartilhamentoService.salvarArquivo(
+          pdfBytes: pdfBytes,
+          nomeArquivo: nomeArquivo,
+        ),
+    };
+  }
+
+  void _registrarResultadoCompartilhamento(
+    ReciboCompartilhamentoOpcao opcao,
+    ReciboCompartilhamentoResultado resultado,
+  ) {
+    if (resultado.status == ReciboCompartilhamentoStatus.cancelado) {
+      _viewModel.cancelarCompartilhamentoPdf();
+      return;
+    }
+
+    if (opcao == ReciboCompartilhamentoOpcao.salvarArquivo) {
+      _viewModel.concluirSalvamentoPdf();
+      return;
+    }
+
+    _viewModel.concluirCompartilhamentoPdf();
+  }
+
+  String _nomeArquivoRecibo() {
+    final numero = _viewModel.reciboEmEdicao.numero.trim();
+    final identificador = numero.isEmpty ? 'rascunho' : numero;
+    final seguro = identificador.replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '-');
+    return 'recibo-$seguro.pdf';
+  }
+
+  String _mensagemErroGeracaoPdf(Object erro) {
+    final mensagem = erro.toString();
+    const prefixos = ['Exception: ', 'Bad state: ', 'Invalid argument(s): '];
+
+    for (final prefixo in prefixos) {
+      if (mensagem.startsWith(prefixo)) {
+        return 'Não foi possível gerar o PDF: ${mensagem.substring(prefixo.length)}';
+      }
+    }
+
+    return 'Não foi possível gerar o PDF: $mensagem';
+  }
+
+  String _mensagemErroImpressao(Object erro) {
+    final mensagem = erro.toString();
+    const prefixos = ['Exception: ', 'Bad state: ', 'Invalid argument(s): '];
+
+    for (final prefixo in prefixos) {
+      if (mensagem.startsWith(prefixo)) {
+        return 'Não foi possível imprimir o recibo: ${mensagem.substring(prefixo.length)}';
+      }
+    }
+
+    return 'Não foi possível imprimir o recibo: $mensagem';
+  }
+
+  String _mensagemErroCompartilhamento(Object erro) {
+    final mensagem = erro.toString();
+    const prefixos = ['Exception: ', 'Bad state: ', 'Invalid argument(s): '];
+
+    for (final prefixo in prefixos) {
+      if (mensagem.startsWith(prefixo)) {
+        return 'Não foi possível compartilhar o PDF: ${mensagem.substring(prefixo.length)}';
+      }
+    }
+
+    return 'Não foi possível compartilhar o PDF: $mensagem';
+  }
 }
 
 PedidoPageViewModel _criarViewModelPadrao() {
@@ -164,18 +412,11 @@ PedidoPageViewModel _criarViewModelPadrao() {
   );
 }
 
-class _PedidoPagePlaceholderSection extends StatelessWidget {
-  const _PedidoPagePlaceholderSection({
-    required this.title,
-    required this.description,
-    required this.titleStyle,
-    this.child,
-  });
+class _PedidoPageSection extends StatelessWidget {
+  const _PedidoPageSection({required this.titulo, required this.child});
 
-  final String title;
-  final String description;
-  final TextStyle? titleStyle;
-  final Widget? child;
+  final String titulo;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -184,10 +425,10 @@ class _PedidoPagePlaceholderSection extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: title,
+      label: titulo,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colorScheme.outlineVariant),
         ),
@@ -196,10 +437,30 @@ class _PedidoPagePlaceholderSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: titleStyle),
-              const SizedBox(height: 8),
-              Text(description, style: textTheme.bodyMedium),
-              if (child != null) ...[const SizedBox(height: 16), child!],
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              child,
             ],
           ),
         ),

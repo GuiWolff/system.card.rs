@@ -27,44 +27,108 @@ class ProdutosServicosTabela extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text('Produtos / Serviços', style: textTheme.titleMedium),
+              child: Text(
+                'Produtos / Serviços',
+                style: textTheme.titleMedium?.copyWith(
+                  color: colorScheme.secondary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
-            OutlinedButton.icon(
+            FilledButton.icon(
               onPressed: onAdicionarItem,
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.tertiary,
+                foregroundColor: colorScheme.onTertiary,
+              ),
               icon: const Icon(Icons.add),
               label: const Text('Adicionar item'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colorScheme.outlineVariant),
-          ),
-          child: itens.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Nenhum produto/serviço adicionado.'),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: itens.length,
-                  separatorBuilder: (_, _) =>
-                      Divider(height: 1, color: colorScheme.outlineVariant),
-                  itemBuilder: (context, indice) {
-                    return _ProdutoServicoLinha(
-                      indice: indice,
-                      item: itens[indice],
-                      onAtualizarItem: onAtualizarItem,
-                      onRemoverItem: onRemoverItem,
-                    );
-                  },
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compacto = constraints.maxWidth < 720;
+
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Column(
+                  children: [
+                    if (!compacto) const _TabelaCabecalho(),
+                    if (itens.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Nenhum produto/serviço adicionado.'),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: itens.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: colorScheme.outlineVariant,
+                        ),
+                        itemBuilder: (context, indice) {
+                          return _ProdutoServicoLinha(
+                            indice: indice,
+                            item: itens[indice],
+                            onAtualizarItem: onAtualizarItem,
+                            onRemoverItem: onRemoverItem,
+                          );
+                        },
+                      ),
+                  ],
                 ),
+              ),
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _TabelaCabecalho extends StatelessWidget {
+  const _TabelaCabecalho();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final estilo = textTheme.labelLarge?.copyWith(
+      color: colorScheme.onSecondary,
+      fontWeight: FontWeight.w800,
+    );
+
+    return ColoredBox(
+      color: colorScheme.secondary,
+      child: DefaultTextStyle.merge(
+        style: estilo,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              SizedBox(width: 84, child: Text('Qtd.')),
+              SizedBox(width: 12),
+              Expanded(child: Text('Produtos')),
+              SizedBox(width: 150, child: Text('Vl. unitário')),
+              SizedBox(width: 140, child: Text('Vl. total')),
+              SizedBox(width: 48),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -85,6 +149,7 @@ class _ProdutoServicoLinha extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -156,7 +221,10 @@ class _ProdutoServicoLinha extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       _formatarCentavos(item.totalCentavos),
-                      style: textTheme.titleSmall,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: colorScheme.tertiary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -165,7 +233,7 @@ class _ProdutoServicoLinha extends StatelessWidget {
             IconButton(
               tooltip: 'Remover item',
               onPressed: () => onRemoverItem(indice),
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Icons.delete_outline, color: colorScheme.error),
             ),
           ];
 
