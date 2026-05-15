@@ -1,0 +1,880 @@
+# Contrato de tela: PedidoPage
+
+## Nome da tela
+- `PedidoPage`
+
+## Objetivo da tela
+- Ser a Page agregadora inicial da experiência de pedido/recibo.
+- Juntar, em uma única composição responsiva:
+  - Cabeçalho;
+  - Recibo;
+  - Resumo.
+- Coordenar layout, ordem visual e passagem de estado/callbacks sem duplicar as regras internas dos blocos.
+
+## Estado atual da tela
+- A tela existe em `lib/features/pedido_page/presentation/pages/pedido_page.dart`.
+- A feature `pedido_page` possui barrel público em `lib/features/pedido_page/pedido_page.dart`.
+- O app abre a `PedidoPage` a partir de `lib/main.dart`.
+- O teste inicial do app valida a abertura da `PedidoPage` e não depende mais do template antigo do contador.
+- A tela usa `PedidoPageLayout` para organizar regiões de cabeçalho, recibo e resumo.
+- A região de cabeçalho usa o widget real `CabecalhoApp`, pertencente à feature `pedido_page`.
+- A região de resumo ainda usa encaixe mínimo temporário explícito.
+- A região de recibo foi substituída pelo widget inicial real `ReciboPedido`, pertencente à feature `pedido_page`.
+- A tela possui `PedidoPageViewModel` em `lib/features/pedido_page/presentation/viewmodels/pedido_page_view_model.dart`.
+- A `PedidoPageViewModel` é a fonte mínima de estado compartilhado entre `CabecalhoApp`, `ReciboPedido` e o encaixe temporário de resumo.
+- A `PedidoPageViewModel` usa `Rx<T>` internamente para total do pedido, valor de entrada e estados do cabeçalho.
+- O `ReciboPedido` exibe os valores atuais de total, entrada e entrega a partir da ViewModel e expõe uma ação inicial para preencher dados de exemplo.
+- O resumo temporário lê `totalPedidoCentavos`, `valorEntradaCentavos` e `valorAPagarEntregaCentavos` da mesma ViewModel atualizada pelo `ReciboPedido`.
+- A feature possui domínio inicial puro em `lib/features/pedido_page/domain/models/` para `Recibo`, `ItemRecibo` e `ResumoRecibo`.
+- Os modelos de domínio não dependem de Flutter, widgets, SQLite ou ViewModel.
+- `ItemRecibo` calcula o total do item a partir de quantidade e valor unitário em centavos.
+- `ResumoRecibo` calcula total do pedido e valor a pagar na entrega a partir dos itens e do valor de entrada.
+- `Recibo` agrega itens, dados básicos do cliente/recibo e expõe o mesmo resumo financeiro para alimentar futuramente a `PedidoPageViewModel` e o bloco de resumo sem duplicar regra.
+- A feature possui datasource SQLite inicial em `lib/features/pedido_page/data/datasources/recibo_database.dart`.
+- O datasource `ReciboDatabase` inicializa SQLite via FFI dentro da camada de dados, abre banco desktop em `ApplicationSupportDirectory` quando usado com caminho relativo e permite banco em memória para testes.
+- O schema SQLite versionado atual é a versão `1`, com tabelas `recibos` e `recibo_itens`, chave estrangeira com exclusão em cascata e índices para `numero`, `cliente_nome` e `atualizado_em`.
+- A persistência preparada neste slice armazena datas como texto ISO-8601 e valores monetários em centavos inteiros.
+- A feature possui contrato `ReciboRepository` em `lib/features/pedido_page/domain/repositories/recibo_repository.dart`.
+- A feature possui DTOs em `lib/features/pedido_page/data/dtos/` para isolar o schema SQLite dos modelos de domínio.
+- A feature possui `ReciboRepositorySqlite` em `lib/features/pedido_page/data/repositories/recibo_repository_sqlite.dart`, consumindo o `ReciboDatabase`.
+- O repository SQLite salva recibos e itens em transação, atualiza recibos substituindo os itens relacionados de forma consistente, lista histórico por atualização decrescente, pesquisa por número/cliente/telefone, carrega por id e exclui recibos.
+- A exclusão de recibos depende da chave estrangeira com cascata já definida no datasource para evitar itens órfãos.
+- A `PedidoPage`, o `ReciboPedido` e a `PedidoPageViewModel` ainda não acessam SQLite ou repository diretamente; a conexão de estado persistido e histórico visual fica para slices posteriores.
+- A Page observa os trechos dependentes da ViewModel com `Obx`, lendo os getters reativos dentro dos builders observados.
+- A migração reativa foi revisada no fechamento do slice 3/3: os arquivos Dart da feature `pedido_page` não usam `ChangeNotifier`, `AnimatedBuilder` nem chamadas a `setState()`.
+- A ViewModel não acessa `BuildContext`.
+- `CabecalhoApp`, `ReciboFormulario` e `ProdutosServicosTabela` possuem implementação dentro de `lib/features/pedido_page/`.
+- A `PedidoPage` importa `CabecalhoApp` para a região de cabeçalho e o bloco público `ReciboPedido` para a região de recibo, sem criar `ReciboPage`.
+- Existem planejamentos separados para Cabeçalho, Recibo e Resumo.
+- Existe contrato legado de `ReciboPage`, que deve ser lido apenas como referência funcional enquanto o recibo desta tarefa permanece integrado à `PedidoPage`.
+
+## Estado esperado após a tarefa
+- A `PedidoPage` deve existir em `lib/features/pedido_page/presentation/pages/pedido_page.dart`.
+- A tela deve expor uma composição responsiva estável para receber cabeçalho, recibo/formulário e resumo financeiro nos próximos slices.
+- O layout deve preservar slots claros para substituição dos encaixes temporários pelos componentes reais.
+- Componentes internos devem poder evoluir independentemente.
+- Na migração reativa atual, a ViewModel usa `Rx<T>` e a Page observa as áreas dependentes por `Obx`.
+- A feature `pedido_page` não deve chamar `setState()`; `Obx` pode ser usado como infraestrutura reativa existente do projeto.
+
+## Estados visuais possíveis
+- Estado inicial com layout:
+  - AppBar com título `Pedido` visível;
+  - região de cabeçalho visível com `CabecalhoApp`;
+  - região `Recibo` visível com `ReciboPedido`;
+  - região `Resumo` visível.
+- Estado inicial de resumo:
+  - total do pedido `R$ 0,00`;
+  - valor de entrada `R$ 0,00`;
+  - valor a pagar na entrega `R$ 0,00`.
+- Estado com dados temporários de recibo:
+  - `ReciboPedido` atualiza a `PedidoPageViewModel`;
+  - resumo temporário reflete imediatamente a mesma fonte de dados.
+- Estado de repository SQLite preparado:
+  - não altera a composição visual atual;
+  - disponibiliza operações de salvar, atualizar, listar, pesquisar, carregar e excluir recibos para uso futuro por ViewModel e histórico;
+  - não exibe carregamento, erro, histórico ou dados persistidos neste slice.
+- Estado com ação de cabeçalho:
+  - `CabecalhoApp` registra a última ação na `PedidoPageViewModel`;
+  - `IMPRIMIR` e `GERAR PDF` exibem feedback preparatório, sem executar impressão real ou PDF real.
+- Estado futuro com composição:
+  - cabeçalho visível;
+  - área de recibo disponível;
+  - resumo zerado ou inicial.
+- Estado com componentes reais disponíveis:
+  - `PedidoPage` usa os widgets reais de Cabeçalho, Recibo e Resumo.
+- Estado com componentes pendentes:
+  - a tela pode usar encaixes mínimos temporários, desde que a pendência esteja registrada no resumo do slice.
+- Desktop amplo:
+  - cabeçalho ocupa a largura superior;
+  - recibo e resumo ficam organizados em coluna principal;
+  - conteúdo fica centralizado com largura máxima controlada;
+  - resumo permanece abaixo do recibo.
+- Desktop estreito:
+  - blocos empilham e rolam sem overflow horizontal.
+- Tablet/mobile:
+  - blocos mantêm a mesma ordem vertical;
+  - rolagem vertical deve absorver falta de altura disponível.
+- Estado de carregamento ou erro:
+  - deve ser controlado por ViewModel ou estado externo, não por regra pesada no widget.
+
+## Dados necessários para renderização
+- Dados do cabeçalho:
+  - identidade da empresa;
+  - contatos;
+  - callbacks de ações do cabeçalho.
+- Dados do recibo:
+  - neste slice, indicadores iniciais de total, entrada e entrega;
+  - ação inicial para preencher dados de exemplo na `PedidoPageViewModel`;
+  - futuramente, campos editáveis do pedido/recibo;
+  - futuramente, lista de produtos/serviços;
+  - futuramente, callbacks de edição definitivos.
+- Dados de domínio do recibo:
+  - `id` interno opcional;
+  - número do recibo;
+  - cliente;
+  - telefone;
+  - observações;
+  - data de recebimento;
+  - data de entrega;
+  - data de criação;
+  - data de atualização;
+  - valor de entrada em centavos;
+  - lista imutável de `ItemRecibo`.
+- Dados de domínio dos itens:
+  - `id` interno opcional;
+  - ordem;
+  - quantidade inteira;
+  - descrição do produto/serviço;
+  - valor unitário em centavos;
+  - total do item calculado em centavos.
+- Dados do resumo:
+  - total do pedido;
+  - valor de entrada;
+  - valor a pagar na entrega.
+- Dados de domínio do resumo:
+  - total do pedido em centavos, derivado da soma dos totais dos itens;
+  - valor de entrada em centavos;
+  - valor a pagar na entrega em centavos, calculado por `total do pedido - valor de entrada`.
+- Dados persistidos do histórico:
+  - recibos salvos com os mesmos campos do domínio;
+  - itens vinculados ao recibo por `recibo_id`;
+  - datas persistidas como texto ISO-8601;
+  - valores monetários persistidos em centavos inteiros;
+  - `criado_em` e `atualizado_em` usados para auditoria local e ordenação do histórico.
+- Dados compartilhados atuais:
+  - `totalPedidoCentavos`;
+  - `valorEntradaCentavos`;
+  - `valorAPagarEntregaCentavos`;
+  - valores formatados em moeda pt-BR simples para exibição temporária;
+  - última ação temporária do cabeçalho.
+- Dados de layout:
+  - largura disponível;
+  - regras por `LayoutBuilder`;
+  - espaçamentos entre blocos;
+  - rolagem vertical.
+
+## Ações do usuário disponíveis
+- Interagir com ações do cabeçalho.
+- Preencher ou editar dados do recibo.
+- Adicionar, editar ou remover produtos/serviços no bloco de recibo, quando esse componente existir.
+- Visualizar o resumo financeiro atualizado.
+- No estado temporário atual:
+  - acionar callback mínimo do cabeçalho;
+  - acionar `Preencher exemplo do recibo` no `ReciboPedido` para validar a coordenação com o resumo.
+- Futuramente, salvar, imprimir, gerar PDF ou abrir histórico conforme os blocos internos disponibilizarem essas ações.
+- Na camada de repository já existem operações disponíveis para os slices futuros:
+  - salvar novo recibo;
+  - atualizar recibo existente;
+  - buscar recibo por id;
+  - listar histórico por atualização decrescente;
+  - pesquisar histórico por número, cliente ou telefone;
+  - excluir recibo.
+
+## Regras de interação
+- A `PedidoPage` não deve recalcular totais diretamente se já houver ViewModel/modelo responsável.
+- O resumo deve refletir a mesma fonte de dados do recibo.
+- A regra de cálculo definitiva do recibo está no domínio:
+  - `ItemRecibo.totalCentavos = quantidade * valorUnitarioCentavos`;
+  - `ResumoRecibo.totalPedidoCentavos = soma dos totais dos itens`;
+  - `ResumoRecibo.valorAPagarEntregaCentavos = totalPedidoCentavos - valorEntradaCentavos`.
+- Valores monetários devem ser manipulados como centavos inteiros no domínio e formatados apenas na apresentação.
+- Validações básicas de domínio:
+  - número do recibo obrigatório;
+  - cliente obrigatório;
+  - quantidade do item maior que zero;
+  - descrição do item obrigatória;
+  - valor unitário do item maior ou igual a zero;
+  - valor de entrada maior ou igual a zero;
+  - valor de entrada não pode ultrapassar o total do pedido.
+- A decisão do slice 2 é bloquear entrada maior que o total do pedido no domínio.
+- O cabeçalho deve receber callbacks da Page ou ViewModel, sem acessar estado global desnecessário.
+- A fonte de verdade atual do resumo é a `PedidoPageViewModel`.
+- A leitura de estado reativo feita pela UI deve ocorrer dentro de builders `Obx`, para que o rastreamento de dependência funcione corretamente.
+- O `ReciboPedido` inicial apenas lê a ViewModel e chama `atualizarDadosDoRecibo`; ele não contém regra interna de produtos, persistência ou validação definitiva.
+- A ViewModel temporária ainda expõe diferença simples entre total e entrada; nos próximos slices, ela deve passar a consumir a validação do domínio para impedir entrada maior que o total.
+- A Page não deve buscar dados diretamente em repository ou SQLite, salvo se esse for o padrão definido pelo ViewModel de composição.
+- As operações persistidas devem ser chamadas futuramente pela `PedidoPageViewModel` ou controller pertencente à feature `pedido_page`, mantendo widgets sem acesso direto ao banco.
+- O repository deve receber e devolver modelos de domínio; DTOs e mapas de SQLite não devem vazar para UI, ViewModel ou contrato público da tela.
+- A Page deve preservar acessibilidade básica: ordem de foco coerente, textos visíveis e botões com rótulo.
+- Componentes provisórios devem ser substituíveis sem quebrar a API pública da `PedidoPage`.
+
+## Dependências da tela
+- `MaterialApp` em `lib/main.dart`.
+- Feature `pedido_page`.
+- Planejamentos e/ou componentes de:
+  - cabeçalho;
+  - recibo;
+  - resumo.
+- Possível ViewModel:
+  - `PedidoPageViewModel`, se houver estado de composição;
+  - ou ViewModel já existente de recibo, se ela for a fonte de verdade.
+- Persistência local futura:
+  - `ReciboDatabase` em `lib/features/pedido_page/data/datasources/`;
+  - `ReciboRepository` em `lib/features/pedido_page/domain/repositories/`;
+  - `ReciboRepositorySqlite` em `lib/features/pedido_page/data/repositories/`;
+  - DTOs em `lib/features/pedido_page/data/dtos/`;
+  - `sqflite_common_ffi`, `path` e `path_provider` declarados para SQLite embarcado no desktop.
+
+## Widgets principais
+- `PedidoPage`
+- `PedidoPageLayout`
+- `ReciboPedido`
+- `CabecalhoApp`
+- Bloco de Recibo, quando disponível.
+- Bloco de Resumo, quando disponível.
+- No estado atual, apenas o resumo permanece representado por placeholder privado mínimo dentro da `PedidoPage`.
+
+## ViewModel/Controller relacionado
+- Relacionado: `PedidoPageViewModel`.
+- Responsabilidades:
+  - expor estado compartilhado entre recibo e resumo;
+  - encaminhar callbacks do cabeçalho;
+  - conectar dados editados no recibo ao resumo;
+  - preservar fonte única de dados.
+- O ViewModel não deve acessar `BuildContext`.
+- Estado atual:
+  - `PedidoPageViewModel` existe e concentra apenas coordenação mínima;
+  - usa `Rx<T>` como mecanismo interno de estado;
+  - expõe total do pedido, valor de entrada e valor a pagar na entrega em centavos;
+  - expõe valores formatados para o resumo temporário;
+  - registra a última ação temporária do cabeçalho;
+  - não implementa persistência, impressão, PDF, histórico, validação definitiva nem regra interna dos blocos ausentes.
+- Continuidade planejada:
+  - preservar getters e métodos públicos úteis da ViewModel sempre que possível;
+  - manter `dispose()` para liberar os estados reativos internos.
+
+## Pontos que cada slice precisa preservar
+- Slice 1 de recibo:
+  - manter `PedidoPage` como Page agregadora;
+  - renderizar `ReciboPedido` dentro do slot de recibo do `PedidoPageLayout`;
+  - não criar `ReciboPage`, rota própria, `Scaffold` próprio nem entrada própria para recibo;
+  - manter `lib/main.dart` abrindo `PedidoPage`.
+- Slice 2 de recibo:
+  - manter os modelos de domínio dentro de `lib/features/pedido_page/domain/`;
+  - preservar domínio puro, sem dependência de Flutter, SQLite, widgets ou ViewModel;
+  - usar centavos inteiros como unidade de cálculo monetário;
+  - deixar a UI atual sem alteração visual direta;
+  - preparar `Recibo`, `ItemRecibo` e `ResumoRecibo` para alimentar a ViewModel e o resumo nos próximos slices.
+- Slice 3 de recibo:
+  - manter SQLite dentro de `lib/features/pedido_page/data/`;
+  - preservar a UI sem alteração visual direta;
+  - não acoplar banco à `PedidoPage`, widgets ou ViewModel;
+  - usar schema versionado, datas ISO-8601, valores em centavos inteiros e chave estrangeira com exclusão em cascata.
+- Slice 4 de recibo:
+  - manter contrato de repository dentro da feature `pedido_page`;
+  - preservar DTOs como fronteira entre SQLite e domínio;
+  - manter operações transacionais para salvar e atualizar recibos com itens;
+  - disponibilizar histórico persistido sem alterar a UI ou criar `ReciboPage`;
+  - não conectar repository à `PedidoPageViewModel` neste slice.
+- Slices futuros de recibo:
+  - evoluir domínio, persistência, estado, formulário, visualização e histórico dentro da feature `pedido_page`;
+  - preservar a fonte única de estado compartilhada entre recibo e resumo;
+  - atualizar este contrato a cada alteração de UI, estado ou regra pública da composição.
+
+## Pendências conhecidas
+- O cabeçalho definitivo do escopo atual foi integrado por meio de `CabecalhoApp`.
+- O formulário/tabela do recibo já foi integrado ao bloco `ReciboPedido`.
+- O resumo financeiro dedicado foi integrado por meio de `ResumoPedido`.
+- Pendências específicas:
+  - avaliar em ciclo futuro se o campo `Valor de entrada` deve permanecer também no formulário do recibo ou ficar somente no bloco `ResumoPedido`.
+- O `CabecalhoApp`, o `ReciboPedido` e o `ResumoPedido` consomem a `PedidoPageViewModel`.
+- O contrato de `ReciboPage` descreve responsabilidades próximas e pode precisar ser revisado futuramente.
+
+## Continuidade esperada para os próximos slices
+- A migração reativa com `Rx`/`Obx` está fechada para o escopo atual da `PedidoPage`.
+- Atualizar este contrato sempre que a `PedidoPage`, layout, estados ou integração de blocos forem alterados.
+- O slice 2 deve adicionar domínio e cálculos do recibo dentro de `lib/features/pedido_page/domain/`, sem criar Page independente para recibo.
+- O slice 3 deve adicionar SQLite embarcado dentro da feature `pedido_page`, mapeando os dados de domínio sem acoplar banco à UI.
+- Próximas evoluções devem tratar apenas da integração dos componentes reais de Cabeçalho, Recibo e Resumo quando eles existirem no projeto.
+
+## Atualização do resumo financeiro - Slice 1/4
+- O resumo financeiro permanece dentro da feature real `pedido_page`, sem criação de estrutura paralela em `lib/features/recibo/`.
+- A fonte de cálculo é o domínio existente:
+  - `ItemRecibo.totalCentavos`;
+  - `ResumoRecibo.calcular`;
+  - `Recibo.resumo`.
+- Entrada vazia ou texto monetário inválido na apresentação deve ser convertido para `0` centavos antes de chegar ao domínio.
+- Entrada igual a zero é válida e mantém `valorAPagarEntregaCentavos` igual ao total do pedido.
+- Entrada negativa e entrada maior que o total do pedido são inválidas e devem ser reportadas pela camada de estado antes de persistir.
+- Valores monetários continuam representados como centavos inteiros no domínio.
+
+## Atualização do resumo financeiro - Slice 2/4
+- `PedidoPageViewModel` expõe `resumoFinanceiro`, `errosResumoFinanceiro`, `resumoFinanceiroValido`, `mensagemValorEntrada` e `valorEntradaValido`.
+- O resumo é recalculado a partir de `reciboEmEdicao`, preservando uma única fonte de verdade para itens, total, entrada e saldo de entrega.
+- Mudanças em itens, quantidade, valor unitário ou entrada atualizam os getters do resumo pelo mesmo fluxo reativo de `reciboEmEdicao`.
+- `salvarRecibo` passa a validar o domínio antes de persistir, retornando a primeira mensagem em `erro` quando o recibo ou o resumo estiver inválido.
+- A ViewModel não acessa `BuildContext` e a validação de entrada permanece fora dos widgets visuais.
+
+## Atualização do resumo financeiro - Slice 3/4
+- Foi criado `ResumoPedido` em `lib/features/pedido_page/presentation/widgets/resumo_pedido.dart`.
+- A `PedidoPage` substituiu o encaixe temporário de resumo por `ResumoPedido` observado via `Obx`.
+- O bloco fica abaixo do widget de recibo/produtos dentro da coluna do `PedidoPageLayout`.
+- O widget renderiza:
+  - título `RESUMO`;
+  - rótulo `Total do Pedido:`;
+  - campo editável `Valor Entrada:`;
+  - rótulo `Valor a pagar na Entrega:`;
+  - destaque visual no saldo de entrega usando a cor terciária do `ColorScheme`.
+- `ResumoPedido` recebe valores já formatados e callback de entrada; ele não calcula total nem saldo no `build`.
+- O layout usa `LayoutBuilder` e `Wrap`: em largura ampla os três campos ficam lado a lado; em largura compacta eles empilham sem overflow horizontal.
+- `lib/resources/resumo.png` permanece como referência visual, não como imagem renderizada.
+
+## Atualização do resumo financeiro - Slice 4/4
+- A integração final foi revisada com `ResumoPedido` abaixo de `ReciboPedido` na coluna do `PedidoPageLayout`.
+- Alterações em produtos/serviços, quantidade, valor unitário e entrada atualizam o total e o saldo por meio da `PedidoPageViewModel`.
+- O campo `Valor Entrada` do resumo é acessível por teclado, mouse e toque por usar `TextFormField` do Material.
+- A mensagem de validação de entrada vem de `PedidoPageViewModel.mensagemValorEntrada`.
+- Os testes do template antigo não permanecem como contrato ativo; `test/widget_test.dart` valida a abertura da `PedidoPage` e o resumo real.
+- Validações finais do resumo financeiro:
+  - `flutter analyze`: passou, sem issues;
+  - `flutter test`: passou, 52 testes.
+- Pendência real: há um campo de valor de entrada no formulário do recibo e outro no `ResumoPedido`; ambos atualizam a mesma ViewModel, mas a decisão de produto sobre manter os dois pontos de edição pode ser revisada depois.
+
+## Atualização do slice 5/9 - Estado do recibo na PedidoPageViewModel
+- A `PedidoPageViewModel` foi evoluída como dona do estado de composição entre recibo, itens, resumo e histórico.
+- Não foi criada `ReciboPageViewModel`.
+- A `PedidoPage` continua sendo a Page agregadora e cria a ViewModel padrão com `ReciboRepositorySqlite(ReciboDatabase.desktop())` quando nenhuma ViewModel é injetada por teste ou composição externa.
+- A ViewModel não acessa `BuildContext`.
+- O recibo em edição passou a ser a fonte de verdade principal por meio de `reciboEmEdicao`.
+- Os totais exibidos no resumo temporário continuam disponíveis por compatibilidade, mas agora são derivados do domínio:
+  - `totalPedidoCentavos`;
+  - `valorEntradaCentavos`;
+  - `valorAPagarEntregaCentavos`;
+  - `totalPedidoFormatado`;
+  - `valorEntradaFormatado`;
+  - `valorAPagarEntregaFormatado`.
+- Estados reativos relacionados ao recibo:
+  - `reciboEmEdicao`;
+  - `itens`;
+  - `historico`;
+  - `carregando`;
+  - `salvando`;
+  - `erro`;
+  - `reciboAtualSalvo`.
+- Comandos disponíveis na ViewModel:
+  - `iniciarNovoRecibo`;
+  - `atualizarNumero`;
+  - `atualizarCliente`;
+  - `atualizarTelefone`;
+  - `atualizarObservacoes`;
+  - `atualizarDataRecebimento`;
+  - `atualizarDataEntrega`;
+  - `atualizarValorEntradaCentavos`;
+  - `adicionarItem`;
+  - `atualizarItem`;
+  - `removerItem`;
+  - `limparItens`;
+  - `salvarRecibo`;
+  - `carregarRecibo`;
+  - `listarHistorico`;
+  - `pesquisarHistorico`;
+  - `excluirRecibo`.
+- `salvarRecibo` decide entre salvar e atualizar conforme a existência de `id` no recibo atual.
+- `carregarRecibo` substitui o recibo em edição pelo modelo retornado pelo repository e marca o estado como salvo.
+- `excluirRecibo` atualiza o histórico e inicia um novo recibo quando o registro excluído é o recibo em edição.
+- Falhas de repository ou validação são expostas em `erro`, sem lançar exceção para a UI.
+- O histórico é exposto como lista de modelos de domínio `Recibo`; DTOs e mapas SQLite continuam restritos à camada de dados.
+- Não houve mudança visual direta neste slice: o `ReciboPedido` e o resumo temporário continuam exibindo os mesmos indicadores, agora alimentados pelo recibo em edição da ViewModel.
+- O formulário final, a visualização final e o painel visual de histórico permanecem pendentes para os slices 6, 7 e 8.
+- O formulário final, a visualização final e o painel visual de histórico permanecem pendentes para os slices 6, 7 e 8.
+
+## Atualização do slice 6/9 - Formulário e tabela no bloco de recibo
+- O recibo continua integrado à `PedidoPage` por meio do widget `ReciboPedido`, sem `ReciboPage`, rota própria, `Scaffold` próprio ou `ReciboPageViewModel`.
+- `ReciboPedido` passou a compor widgets de apresentação da própria feature `pedido_page`:
+  - `ReciboFormulario`, em `lib/features/pedido_page/presentation/widgets/recibo_formulario.dart`;
+  - `ProdutosServicosTabela`, em `lib/features/pedido_page/presentation/widgets/produtos_servicos_tabela.dart`.
+- O formulário `Dados do Recibo` renderiza e edita:
+  - número do recibo;
+  - data de recebimento;
+  - data de entrega;
+  - cliente;
+  - telefone;
+  - valor de entrada;
+  - observações.
+- A tabela `Produtos / Serviços` renderiza a lista de itens do recibo e permite:
+  - adicionar novo item;
+  - editar quantidade;
+  - editar descrição;
+  - editar valor unitário;
+  - consultar o total calculado por item;
+  - remover item.
+- A lista de produtos/serviços usa `ListView.separated` com builder, `shrinkWrap` e rolagem delegada ao layout externo da `PedidoPage`.
+- O bloco de recibo observa `PedidoPageViewModel` via `Obx` e envia alterações exclusivamente pelos comandos públicos já existentes na ViewModel.
+- A fonte de verdade continua sendo `reciboEmEdicao`; por isso, alterações no formulário e na tabela atualizam imediatamente:
+  - `totalPedidoCentavos`;
+  - `valorEntradaCentavos`;
+  - `valorAPagarEntregaCentavos`;
+  - os textos do resumo temporário existente no slot `resumo` da `PedidoPage`.
+- O resumo financeiro não foi duplicado dentro de `ReciboPedido`, porque a `PedidoPage` já possui slot próprio de resumo.
+- A conversão de valores monetários digitados ocorre na apresentação apenas para transformar texto em centavos inteiros antes de chamar a ViewModel; o cálculo definitivo permanece no domínio.
+- O layout do formulário e da tabela usa `LayoutBuilder`, `Wrap` e larguras adaptativas para evitar overflow horizontal em desktop redimensionado e larguras compactas.
+- A visualização final do recibo, painel visual de histórico, exportação PDF e impressão real permanecem pendentes para os slices seguintes.
+
+## Atualização do slice 7/9 - Visualização integrada do recibo
+- O recibo continua integrado à `PedidoPage` por meio de `ReciboPedido`, sem criação de `ReciboPage`, rota própria, `Scaffold` próprio ou `ReciboPageViewModel`.
+- Foi criado `VisualizacaoRecibo` como widget de apresentação da feature `pedido_page`, em `lib/features/pedido_page/presentation/widgets/visualizacao_recibo.dart`.
+- `ReciboPedido` agora compõe, na mesma coluna do formulário e da tabela, a seção `Visualização do Recibo`.
+- A visualização consome diretamente o mesmo `Recibo` vindo de `PedidoPageViewModel.reciboEmEdicao`, observado via `Obx` pelo bloco `ReciboPedido`.
+- A visualização não mantém estado próprio e não acessa repository, SQLite, `BuildContext` em ViewModel ou qualquer fonte paralela de dados.
+- A prévia renderiza com widgets Flutter, sem usar `lib/resources/visualizacao.png` como imagem final.
+- A prévia exibe:
+  - cabeçalho institucional `SYSTEM CARD - RS` com contatos e endereço;
+  - data de recebimento;
+  - data de entrega;
+  - cliente;
+  - telefone;
+  - observações;
+  - tabela de produtos/serviços com quantidade, descrição e valor total por item;
+  - total do pedido;
+  - valor de entrada;
+  - valor a pagar na entrega.
+- Datas são formatadas na apresentação em `dd/MM/yyyy`.
+- Valores monetários continuam sendo calculados no domínio em centavos inteiros e apenas formatados na apresentação da visualização.
+- A tabela da visualização usa `ListView.separated` com builder, `shrinkWrap` e `NeverScrollableScrollPhysics`, preservando a rolagem externa da `PedidoPage`.
+- O layout da visualização usa largura máxima controlada, `LayoutBuilder` e `Wrap` para manter legibilidade em desktop amplo e largura compacta.
+- A visualização mostra estado vazio para produtos/serviços quando o recibo ainda não possui itens.
+- Exportação PDF, impressão real, painel visual de histórico e ações de carregar/salvar pelo painel permanecem pendentes para os slices posteriores.
+
+## Atualização do slice 8/9 - Histórico e ações dentro da PedidoPage
+- O recibo continua integrado à `PedidoPage` por meio de `ReciboPedido`, sem criação de `ReciboPage`, rota própria, `Scaffold` próprio ou `ReciboPageViewModel`.
+- Foi criado `HistoricoRecibosPainel` como widget de apresentação da feature `pedido_page`, em `lib/features/pedido_page/presentation/widgets/historico_recibos_painel.dart`.
+- O histórico é aberto por ação do próprio bloco `ReciboPedido` em um `Dialog`, preservando a `PedidoPage` como tela agregadora e sem criar entrada independente para recibo.
+- O painel lista recibos persistidos com:
+  - número;
+  - cliente;
+  - data de recebimento;
+  - total do pedido;
+  - data de atualização.
+- O painel permite pesquisar por número, cliente ou telefone usando `PedidoPageViewModel.pesquisarHistorico`.
+- A lista do histórico usa `ListView.builder`, com estado vazio e indicador de carregamento.
+- As ações conectadas ao estado da `PedidoPageViewModel` são:
+  - `salvarRecibo`;
+  - `iniciarNovoRecibo`;
+  - `listarHistorico`;
+  - `pesquisarHistorico`;
+  - `carregarRecibo`;
+  - `duplicarRecibo`;
+  - `excluirRecibo`;
+  - `prepararImpressao`;
+  - `prepararGeracaoPdf`.
+- `carregarRecibo` substitui `reciboEmEdicao` pelo modelo persistido carregado do repository; como formulário, tabela, resumo e visualização consomem a mesma fonte de verdade, todos são atualizados no mesmo fluxo reativo.
+- `duplicarRecibo` carrega um recibo salvo, remove ids do recibo e dos itens, ajusta o número com sufixo `- cópia` e deixa o estado como não salvo para permitir novo registro.
+- `excluirRecibo` exige confirmação visual antes de chamar a ViewModel pelo painel; ao excluir o recibo em edição, a ViewModel inicia um novo recibo.
+- As ações `Imprimir` e `Gerar PDF` apenas atualizam `ultimaAcaoRecibo` e exibem feedback de preparação; este slice não implementa exportação PDF real nem integração real com impressora.
+- Foi feito ajuste responsivo pontual em `VisualizacaoRecibo` para evitar overflow nos rótulos de totais em larguras compactas.
+- Testes da `PedidoPage` passaram a cobrir salvar, listar e carregar recibo pelo histórico, garantindo que o resumo reflita o recibo carregado.
+- Testes da `PedidoPageViewModel` passaram a cobrir duplicação e preparação de impressão/PDF como estado.
+
+## Atualização do slice 9/9 - Fechamento final
+- A integração completa do recibo foi revisada dentro da composição da `PedidoPage`.
+- A `PedidoPage` segue como única Page agregadora desta tarefa e continua sendo aberta por `lib/main.dart`.
+- O recibo permanece implementado como bloco/widget por meio de `ReciboPedido`, com formulário, tabela de produtos/serviços, visualização e histórico integrados à feature `pedido_page`.
+- Não foi criada Page independente para recibo por esta tarefa.
+- Não foi criada rota própria, `Scaffold` próprio, entrada própria no app ou `ReciboPageViewModel`.
+- As ocorrências de `ReciboPage` restantes no projeto pertencem ao contrato legado `lib/features/recibo/presentation/pages/recibo_page-contrato.md` e a registros históricos deste contrato.
+- O diálogo de histórico foi revisado para respeitar área segura, limite de altura disponível e recorte de conteúdo em janelas menores.
+- O painel de histórico recebeu semântica de rota/container para melhorar leitura por tecnologias assistivas.
+- As seções principais da `PedidoPage` receberam contêineres semânticos com rótulos coerentes.
+- A composição `PedidoPage` + recibo + histórico mantém rolagem vertical no layout principal e usa `Wrap`, `LayoutBuilder` e listas com builder nos pontos de crescimento.
+- A `PedidoPageViewModel` segue sem acesso a `BuildContext`.
+- Os modelos de domínio seguem sem dependência de Flutter, SQLite ou camada de apresentação.
+- Impressão e geração de PDF permanecem como ações preparatórias de estado, sem exportação PDF real e sem impressão real.
+- A persistência SQLite desktop foi validada automaticamente pelos testes de datasource/repository e fluxo de UI; validação manual de fechar e reabrir o aplicativo desktop não foi executada neste ambiente.
+- Validações finais do slice 9:
+  - `flutter analyze`: passou, sem issues;
+  - `flutter test`: passou, 36 testes.
+
+## Atualização do slice 1/5 - Preparação do cabeçalho na PedidoPage
+- O slice de cabeçalho foi adaptado da nomenclatura legada de `ReciboPage` para `PedidoPage`, conforme regra arquitetural vigente.
+- A estrutura atual confirmada da feature permanece em `lib/features/pedido_page/`, com camadas `data`, `domain`, `presentation/pages`, `presentation/widgets` e `presentation/viewmodels`.
+- A `PedidoPage` continua sendo a tela inicial/agregadora aberta por `lib/main.dart`.
+- Não foi criada, exportada nem registrada `ReciboPage` para este slice.
+- Não foi criada nova implementação em `lib/features/recibo/`; a pasta existente contém apenas contrato legado de referência.
+- O recibo permanece como bloco/widget interno da composição da `PedidoPage`, por meio de `ReciboPedido`.
+- O cabeçalho permanece como bloco interno da composição da `PedidoPage`, atualmente representado por encaixe temporário e ação temporária conectada à `PedidoPageViewModel`.
+- `lib/resources/cabecalho.png` e `lib/resources/tema.jpeg` estão cobertos pelo registro único do diretório `lib/resources/` em `pubspec.yaml`, sem duplicação de entradas específicas.
+- Os testes atuais validam que o app e a tela real abrem em `PedidoPage`, sem dependência do contador do template Flutter.
+- O cabeçalho visual final, os dados definitivos do cabeçalho, PDF, impressão e pré-visualização fora do escopo não foram implementados neste slice.
+
+## Atualização do slice 2/5 - Dados do cabeçalho na PedidoPage
+- Os dados institucionais do cabeçalho foram modelados em `CabecalhoEmpresa`, dentro de `lib/features/pedido_page/domain/models/cabecalho_empresa.dart`.
+- `CabecalhoEmpresa` é um modelo puro da feature `pedido_page`, sem dependência de Flutter, widgets, tema, `Rx`, `Obx`, SQLite ou repository.
+- A `PedidoPageViewModel` expõe `cabecalhoEmpresa` como fonte testável para o cabeçalho da `PedidoPage`.
+- Como os dados do cabeçalho são estáticos neste momento, eles não foram colocados em `Rx`; isso evita reatividade sem necessidade e mantém o modelo simples para o widget visual futuro.
+- Dados padrão expostos para a System Card - RS:
+  - referência visual do cabeçalho: `lib/resources/cabecalho.png`;
+  - logo isolada: ainda não disponível, representada por `logoAssetPath` nulo;
+  - nome da empresa: `SYSTEM CARD - RS`;
+  - subtítulo: `Sistemas de Identificação`;
+  - Instagram: `@systemcards`;
+  - WhatsApp: `51 998020198`;
+  - telefone: `51 30551025`;
+  - endereço: `Rua 20 de Setembro, 528 - Centro - Guaíba - RS`.
+- Ações disponíveis modeladas:
+  - `IMPRIMIR`;
+  - `GERAR PDF`;
+  - `MAIS OPÇÕES`.
+- As ações do cabeçalho neste slice são apenas metadados disponíveis para renderização e conexão futura; impressão real, geração real de PDF e menu definitivo permanecem fora do escopo.
+- A `PedidoPage` continua responsável por agregar cabeçalho, recibo e resumo, enquanto o widget visual definitivo do cabeçalho deve consumir esses dados sem buscar estado global.
+- Não houve implementação do layout visual final do cabeçalho neste slice.
+
+## Atualização do slice 3/5 - Cabeçalho visual responsivo na PedidoPage
+- Foi criado `CabecalhoApp` como widget de apresentação da feature `pedido_page`, em `lib/features/pedido_page/presentation/widgets/cabecalho_app.dart`.
+- A `PedidoPage` passou a usar `CabecalhoApp` diretamente no slot `cabecalho` de `PedidoPageLayout`, substituindo o encaixe temporário anterior.
+- O cabeçalho consome `CabecalhoEmpresa` vindo de `PedidoPageViewModel.cabecalhoEmpresa` e recebe callbacks opcionais por parâmetro.
+- O `CabecalhoApp` não busca dependências globais, não acessa repository, não acessa SQLite e não conhece detalhes internos do recibo.
+- O cabeçalho renderiza:
+  - identidade `SYSTEM CARD - RS`;
+  - subtítulo `Sistemas de Identificação`;
+  - Instagram `@systemcards`;
+  - WhatsApp `51 998020198`;
+  - telefone `51 30551025`;
+  - endereço `Rua 20 de Setembro, 528 - Centro - Guaíba - RS`;
+  - ações `IMPRIMIR`, `GERAR PDF` e `MAIS OPÇÕES`.
+- Como não há logo isolada no worktree atual, o widget usa fallback visual textual `SC` em superfície com `colorScheme.primary`, mantendo `lib/resources/cabecalho.png` apenas como referência visual.
+- O cabeçalho não renderiza `lib/resources/cabecalho.png` como imagem única.
+- Regras responsivas implementadas:
+  - desktop: identidade, contatos e ações ficam distribuídos em linha;
+  - tablet: identidade e ações ocupam a primeira linha, contatos quebram para a segunda;
+  - mobile: identidade, contatos e ações empilham em coluna, com botões em largura total.
+- Endereço e contatos usam `Wrap`, `Flexible`, largura máxima e `TextOverflow.ellipsis` para reduzir risco de overflow horizontal.
+- As ações visuais chamam callbacks mínimos da `PedidoPage`, que apenas registram `imprimir`, `gerar-pdf` ou `mais-opcoes` em `PedidoPageViewModel.registrarAcaoCabecalho`.
+- Impressão real, geração real de PDF, menu definitivo e estados completos das ações permanecem fora do escopo deste slice e ficam para o slice 4.
+- O recibo foi preservado como bloco interno da `PedidoPage` por meio de `ReciboPedido`; não foi criada `ReciboPage`.
+- O resumo permanece como encaixe temporário existente da `PedidoPage`.
+
+## Atualização do slice 4/5 - Ações do cabeçalho
+- As ações do cabeçalho permanecem dentro da composição da `PedidoPage`, sem criação de `ReciboPage`, rota própria ou feature `lib/features/recibo/` para esta tarefa.
+- `CabecalhoApp` continua sendo widget apresentacional:
+  - recebe `CabecalhoEmpresa`;
+  - recebe callbacks explícitos para `IMPRIMIR`, `GERAR PDF`, abertura do menu e seleção de item;
+  - recebe texto opcional de feedback;
+  - não acessa `PedidoPageViewModel`, repository, SQLite ou `BuildContext` fora da própria renderização.
+- `PedidoPage` observa o cabeçalho via `Obx`, lendo `PedidoPageViewModel.cabecalhoEmpresa` e `feedbackCabecalho`.
+- A decisão das ações fica na `PedidoPageViewModel`:
+  - `solicitarImpressaoCabecalho`;
+  - `solicitarGeracaoPdfCabecalho`;
+  - `selecionarOpcaoCabecalho`;
+  - `registrarAcaoCabecalho` para abertura do menu.
+- `IMPRIMIR` e `GERAR PDF` não executam impressão real nem geração real de PDF.
+- `IMPRIMIR` apenas prepara o estado de impressão e exibe feedback: `Impressão preparada para integração futura.`.
+- `GERAR PDF` apenas prepara o estado de PDF e exibe feedback: `PDF preparado para integração futura.`.
+- Enquanto uma ação do cabeçalho estiver em andamento, as ações são expostas como desabilitadas e a ação corrente pode renderizar indicador visual de progresso.
+- O estado de ação em andamento é controlado por `acaoCabecalhoEmAndamento`, sem lógica pesada no widget.
+- O feedback do cabeçalho é controlado por `feedbackCabecalho` e renderizado como região semântica viva no `CabecalhoApp`.
+- O menu `MAIS OPÇÕES` usa `PopupMenuButton`, acessível por toque e teclado conforme o comportamento padrão do Material.
+- O menu expõe itens testáveis:
+  - `Salvar recibo`;
+  - `Abrir histórico`;
+  - `Novo recibo`.
+- No slice atual, os itens do menu registram seleção e feedback controlado; `Novo recibo` também chama `iniciarNovoRecibo`.
+- As ações desabilitadas não devem disparar callbacks.
+- O layout responsivo do slice 3 foi preservado; as mudanças visuais limitaram-se a estados de botão, indicador de progresso, feedback textual e menu.
+
+## Atualização do slice 5/5 - Fechamento do cabeçalho
+- O cabeçalho foi revisado dentro da `PedidoPage` após os slices de dados, layout e ações.
+- `CabecalhoApp` permanece como widget de apresentação da feature `pedido_page`, sem buscar estado global, repository, SQLite ou detalhes internos do recibo.
+- A `PedidoPage` continua sendo a Page agregadora aberta por `lib/main.dart`.
+- O cabeçalho renderiza identidade, subtítulo, contatos e ações da System Card - RS usando `CabecalhoEmpresa` exposto pela `PedidoPageViewModel`.
+- A responsividade final preserva:
+  - desktop com identidade, contatos e ações distribuídos em linha;
+  - tablet com identidade e ações na primeira faixa e contatos abaixo;
+  - mobile com identidade, contatos e ações empilhados e botões em largura total.
+- Acessibilidade revisada:
+  - cabeçalho possui contêiner semântico;
+  - logo real ou fallback textual possui rótulo semântico;
+  - contatos expõem rótulos de canal;
+  - botões possuem rótulo visível;
+  - menu `MAIS OPÇÕES` usa `PopupMenuButton` do Material;
+  - feedback do cabeçalho é anunciado como região semântica viva.
+- Consistência visual revisada:
+  - cores vêm de `ThemeData.colorScheme`;
+  - cantos, bordas e espaçamentos seguem o padrão visual já usado nos blocos da `PedidoPage`;
+  - `lib/resources/cabecalho.png` permanece somente como referência visual, não como imagem única renderizada.
+- Os testes antigos do contador não permanecem como contrato ativo: `test/widget_test.dart` valida `MyApp`, `PedidoPage` e o cabeçalho real.
+- Não foi criada, exportada nem registrada `ReciboPage` para esta tarefa.
+- Não foi criada nova implementação em `lib/features/recibo/` para esta tarefa.
+- A pasta `lib/features/recibo/` contém apenas contrato legado de referência (`recibo_page-contrato.md`), preservado como documentação histórica.
+- Impressão real e geração real de PDF permanecem pendentes; as ações atuais apenas preparam estado e feedback.
+- A ausência de logo isolado permanece como pendência real; enquanto isso, o cabeçalho usa fallback textual `SC`.
+- Validações finais do slice 5:
+  - `flutter analyze`: passou, sem issues;
+  - `flutter test`: passou, 45 testes.
+
+## Planejamento - Cabeçalho editável e cadastro de clientes
+- Tarefa relacionada: `docs/codex/cabecalho/cabecalho-26-05-15-1.md`.
+- A `PedidoPage` continua sendo a tela real impactada; não deve ser criada `ReciboPage` nem uma tela paralela para este escopo.
+- O cabeçalho deve evoluir de dados estáticos para dados editáveis persistidos em `SharedPreferences`.
+- Dados editáveis do cabeçalho:
+  - nome da empresa;
+  - subtítulo;
+  - Instagram;
+  - WhatsApp;
+  - telefone;
+  - endereço;
+  - logo como `String` base64 opcional.
+- Quando o logo base64 estiver ausente, o cabeçalho deve manter o fallback visual atual `SC`.
+- A seleção de imagem deve ser iniciada pela UI e persistida como base64, sem que a ViewModel acesse `BuildContext`.
+- O cabeçalho deve ter estado visual de edição, salvamento, erro, restauração do padrão, seleção de logo e remoção de logo.
+- O cadastro de clientes deve ser integrado à mesma composição da `PedidoPage`, preferencialmente via painel/dialog e sem criar Page própria.
+- Dados do cliente:
+  - `id`;
+  - `nome`;
+  - `telefone`;
+  - telefone normalizado para comparação, busca e unicidade.
+- O telefone deve ser exibido/editado com máscara `(xx) x xxxx-xxxx`.
+- Clientes devem ser persistidos no SQLite embarcado, com bloqueio de telefone duplicado por índice único.
+- A UI deve permitir cadastrar, pesquisar, listar e selecionar clientes.
+- Ao selecionar um cliente, `PedidoPageViewModel` deve preencher o nome e telefone do recibo em edição.
+- Listas de clientes devem usar builder.
+- `PedidoPageViewModel` pode expor estado e comandos de cabeçalho/clientes, mas não deve acessar contexto de UI.
+- Slices planejados:
+  - Slice 1: persistência do cabeçalho em `SharedPreferences`;
+  - Slice 2: estado reativo do cabeçalho na ViewModel;
+  - Slice 3: editor visual do cabeçalho e logo;
+  - Slice 4: domínio e SQLite de clientes;
+  - Slice 5: cadastro, máscara, busca e seleção de clientes;
+  - Slice 6: integração final e validações.
+- Pendências a observar na execução:
+  - escolher abordagem compatível Web/Desktop/Mobile para seleção de imagem;
+  - definir limite de tamanho/tipo aceito para imagem base64;
+  - garantir migração SQLite sem perda de dados existentes;
+  - manter compatibilidade com recibos já persistidos que armazenam cliente como texto.
+
+## Atualização do slice 1/6 - Persistência do cabeçalho editável
+- `CabecalhoEmpresa` passou a representar `logoBase64` opcional, mantendo `logoAssetPath` e `CabecalhoEmpresa.systemCardRs()` como fallback padrão.
+- O fallback visual atual do cabeçalho continua preservado: quando não houver logo real/base64 conectado à UI, `CabecalhoApp` mantém a identidade textual `SC`.
+- Foi criado `CabecalhoPreferenciasRepository` em `lib/features/pedido_page/data/repositories/cabecalho_preferencias_repository.dart`.
+- O repository usa `SharedPreferences` com chaves estáveis e isoladas pelo prefixo `pedido_page.cabecalho.*`.
+- Dados persistidos do cabeçalho:
+  - nome da empresa;
+  - subtítulo;
+  - Instagram;
+  - WhatsApp;
+  - telefone;
+  - endereço;
+  - logo como `String` base64 opcional.
+- O carregamento mescla dados salvos com `CabecalhoEmpresa.systemCardRs()` para cobrir preferências ausentes, vazias ou inválidas.
+- Logo base64 vazio ou inválido é tratado como ausente, sem quebrar o carregamento do cabeçalho.
+- O repository expõe operações para carregar, salvar, remover apenas o logo e restaurar o padrão.
+- Restaurar o padrão remove as chaves persistidas e volta ao fallback `CabecalhoEmpresa.systemCardRs()`.
+- Este slice não altera a UI, não implementa editor visual, não seleciona imagem e não conecta a persistência à `PedidoPageViewModel`; essa integração fica para os próximos slices.
+- Contrato revisado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do slice 2/6 - Estado reativo do cabeçalho editável
+- `PedidoPageViewModel` passou a ser a fonte de verdade reativa do cabeçalho editável.
+- O getter público `cabecalhoEmpresa` foi preservado para manter a API atual consumida pela `PedidoPage` e pelo `CabecalhoApp`.
+- Internamente, o cabeçalho agora é armazenado em `Rx<CabecalhoEmpresa>`, permitindo que a região observada por `Obx` reaja a carregamento, edição, restauração e mudanças de logo.
+- A `PedidoPageViewModel` pode receber `CabecalhoPreferenciasRepository` por injeção no construtor ou por `configurarCabecalhoRepository`.
+- Quando a `PedidoPage` cria a ViewModel padrão, ela carrega a instância de `CabecalhoPreferenciasRepository` e chama `carregarCabecalho`, sem acessar `BuildContext` na ViewModel.
+- Estados expostos para o cabeçalho:
+  - `carregandoCabecalho`;
+  - `salvandoCabecalho`;
+  - `erroCabecalho`;
+  - `feedbackCabecalho`;
+  - `ultimaAcaoCabecalho`;
+  - `cabecalhoEmpresa`.
+- Comandos expostos para o cabeçalho editável:
+  - `carregarCabecalho`;
+  - `atualizarCabecalhoEmpresa`;
+  - `salvarCabecalho`;
+  - `restaurarCabecalhoPadrao`;
+  - `definirLogoCabecalhoBase64`;
+  - `removerLogoCabecalho`;
+  - `configurarCabecalhoRepository`.
+- `atualizarCabecalhoEmpresa` altera apenas o estado em memória para nome da empresa, subtítulo, Instagram, WhatsApp, telefone e endereço.
+- `definirLogoCabecalhoBase64` altera o estado em memória da logo, deixando a persistência para `salvarCabecalho`.
+- `salvarCabecalho` persiste o cabeçalho atual em `SharedPreferences`, recarrega a versão salva e expõe feedback de sucesso.
+- `restaurarCabecalhoPadrao` remove as preferências do cabeçalho e volta a `CabecalhoEmpresa.systemCardRs()`.
+- `removerLogoCabecalho` persiste o cabeçalho atual sem logo, preservando os demais dados editados no estado da ViewModel.
+- Falhas de carregamento, salvamento, restauração ou remoção de logo são expostas em `erroCabecalho` e não devem quebrar a UI.
+- Enquanto o cabeçalho está carregando ou salvando, as ações atuais do cabeçalho são expostas como desabilitadas pelo getter `cabecalhoEmpresa`.
+- Este slice não implementa editor visual, seleção de imagem, prévia visual de logo base64 nem cadastro de clientes.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do slice 3/6 - Editor visual do cabeçalho e logo
+- A edição do cabeçalho foi integrada dentro da `PedidoPage`, sem criar nova Page, rota própria ou feature paralela.
+- A região de cabeçalho passou a expor a ação `Editar cabeçalho`, observada pelo mesmo `Obx` que renderiza o `CabecalhoApp`.
+- Foi criado `CabecalhoEditorDialog` em `lib/features/pedido_page/presentation/widgets/cabecalho_editor_dialog.dart`.
+- O editor permite alterar:
+  - nome da empresa;
+  - subtítulo;
+  - Instagram;
+  - WhatsApp;
+  - telefone;
+  - endereço.
+- O editor permite selecionar imagem de logo pela UI usando `file_picker`, compatível com Web/Desktop/Mobile conforme suporte do plugin.
+- A seleção aceita `png`, `jpg`, `jpeg` e `webp`, lê bytes na camada de apresentação e converte para `String` base64 antes de chamar a ViewModel.
+- A seleção de logo limita a imagem a 768 KB para reduzir risco de gravar payload excessivo em `SharedPreferences`.
+- A `PedidoPageViewModel` continua sem acessar `BuildContext`, seletor de arquivos ou APIs visuais.
+- Ao salvar o diálogo, a `PedidoPage` atualiza a ViewModel com os dados editados e chama `salvarCabecalho`, persistindo em `SharedPreferences` pelo repository criado nos slices anteriores.
+- A remoção de logo usa `removerLogoCabecalho`, persiste o cabeçalho sem logo e preserva os demais dados do estado atual.
+- O `CabecalhoApp` passou a renderizar `logoBase64` com `Image.memory` quando houver imagem válida.
+- Quando não houver logo base64, ou quando o base64 for inválido para decodificação, o cabeçalho mantém o fallback visual textual `SC`.
+- A prévia do editor também mostra a imagem base64 quando existir e usa `SC` como fallback local.
+- O editor usa `SingleChildScrollView`, `Wrap` e largura máxima para evitar overflow em janelas menores.
+- Foi adicionada a dependência `file_picker` em `pubspec.yaml` e o `pubspec.lock` foi atualizado pelo `flutter pub add file_picker`.
+- Testes de widget passaram a cobrir:
+  - renderização de logo base64 no `CabecalhoApp`;
+  - fallback `SC` quando a logo é removida;
+  - edição e salvamento dos dados do cabeçalho pela `PedidoPage`;
+  - responsividade já coberta por larguras representativas do `CabecalhoApp` e `PedidoPageLayout`.
+- Cadastro de clientes, máscara de telefone, SQLite de clientes, impressão real e PDF real permanecem fora deste slice.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do slice 4/6 - Domínio e SQLite de clientes
+- Foi criada a base de domínio e persistência para clientes dentro da feature real `pedido_page`.
+- Foi criado `Cliente` em `lib/features/pedido_page/domain/models/cliente.dart`, como modelo puro sem dependência de Flutter, widgets, ViewModel ou SQLite.
+- Dados do cliente:
+  - `id`;
+  - `nome`;
+  - `telefone`.
+- O telefone é normalizado para apenas dígitos no domínio, antes de chegar ao DTO/repository, para comparação, busca e persistência consistentes.
+- A regra de validação definida para este slice é:
+  - nome obrigatório após `trim`;
+  - telefone válido com 10 ou 11 dígitos normalizados.
+- Foi criado o contrato `ClienteRepository` em `lib/features/pedido_page/domain/repositories/cliente_repository.dart`.
+- Operações disponíveis no contrato:
+  - salvar;
+  - atualizar;
+  - buscar por id;
+  - listar;
+  - pesquisar;
+  - excluir.
+- Foi criado `ClienteDto` em `lib/features/pedido_page/data/dtos/cliente_dto.dart` para isolar mapas SQLite do domínio.
+- Foi criado `ClienteRepositorySqlite` em `lib/features/pedido_page/data/repositories/cliente_repository_sqlite.dart`.
+- O repository SQLite recebe e devolve apenas `Cliente`; DTOs e mapas SQLite não vazam para ViewModel, UI ou contrato público de tela.
+- `ReciboDatabase.version` foi evoluído para `2`.
+- A migração `onUpgrade` cria a tabela `clientes` quando um banco versão `1` é aberto pela versão atual, preservando tabelas e dados existentes de recibos.
+- O schema de clientes possui:
+  - tabela `clientes`;
+  - índice único `idx_clientes_telefone` para bloquear telefone duplicado normalizado;
+  - índice `idx_clientes_nome` para apoiar listagem e pesquisa por nome.
+- A persistência de clientes usa `ReciboDatabase`, compartilhando o banco embarcado da feature sem alterar o fluxo atual de recibos.
+- A pesquisa de clientes considera nome e telefone normalizado.
+- Telefone duplicado é bloqueado no SQLite por índice único e convertido pelo repository em erro de estado com mensagem de domínio/aplicação.
+- Este slice não altera UI diretamente:
+  - não cria cadastro visual de clientes;
+  - não adiciona painel, diálogo, máscara ou seleção de cliente;
+  - não conecta clientes à `PedidoPageViewModel`;
+  - não altera o formulário do recibo.
+- A ausência de UI direta é intencional: este slice entrega somente a base de domínio e persistência para que o próximo slice implemente cadastro, máscara, busca e seleção sem misturar migração de banco com apresentação.
+- Contrato revisado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do slice 5/6 - Cadastro, busca e seleção de clientes
+- O cadastro de clientes foi integrado à experiência da `PedidoPage` sem criar nova Page, rota própria ou feature paralela.
+- `PedidoPageViewModel` passou a receber `ClienteRepository` por injeção no construtor.
+- Estados expostos para clientes:
+  - `clientes`;
+  - `carregandoClientes`;
+  - `salvandoCliente`;
+  - `erroClientes`;
+  - `feedbackClientes`;
+  - `termoBuscaClientes`.
+- Comandos expostos para clientes:
+  - `listarClientes`;
+  - `pesquisarClientes`;
+  - `salvarCliente`;
+  - `selecionarCliente`.
+- A ViewModel continua sem acessar `BuildContext`, diálogo, `TextEditingController`, máscara visual ou APIs de UI.
+- A ViewModel normaliza telefones antes de gravá-los no recibo em edição por meio de `Cliente.normalizarTelefone`.
+- Ao salvar um cliente pelo painel, o cliente salvo é selecionado no recibo em edição, preenchendo `cliente` e `telefone`.
+- Ao selecionar um cliente listado, o recibo em edição recebe:
+  - `cliente` com o nome do cadastro;
+  - `telefone` com os dígitos normalizados.
+- Telefone duplicado permanece bloqueado pelo repository SQLite e é exposto pela ViewModel como mensagem clara: `Já existe um cliente com este telefone.`.
+- Foi criado `TelefoneInputFormatter` em `lib/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart`.
+- A máscara visual aplicada na apresentação usa o padrão de 11 dígitos `(xx) x xxxx-xxxx`; telefones de 10 dígitos usam variação compatível `(xx) xxxx-xxxx`.
+- `ReciboFormulario` passou a exibir o telefone mascarado, mas envia alterações para a ViewModel, que mantém o estado persistível normalizado.
+- Foi criado `ClientesPainel` em `lib/features/pedido_page/presentation/widgets/clientes_painel.dart`.
+- `ClientesPainel` permite:
+  - pesquisar por nome ou telefone;
+  - cadastrar cliente com nome e telefone mascarado;
+  - listar clientes usando `ListView.builder`;
+  - selecionar um cliente.
+- O estado duplicado no widget é restrito aos campos locais do formulário e da busca por meio de `TextEditingController`; a lista, carregamento, erro e feedback vêm da ViewModel.
+- `ReciboPedido` passou a expor a ação `Clientes`, que abre o painel em diálogo, lista os clientes antes da abertura e fecha o diálogo após a seleção.
+- A criação padrão da `PedidoPage` instancia `ReciboDatabase.desktop()` uma vez e compartilha a mesma conexão lógica entre `ReciboRepositorySqlite` e `ClienteRepositorySqlite`.
+- O barrel público da feature `pedido_page` passou a exportar `ClientesPainel`.
+- Contrato atualizado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização do slice 6/6 - Fechamento do cabeçalho editável e clientes
+- O estado contratual atual da `PedidoPage` é a composição única da feature `pedido_page`, sem criação de nova Page para cabeçalho, clientes ou recibo.
+- O cabeçalho editável está integrado à `PedidoPage` por meio de `CabecalhoEditorDialog`, aberto pela ação `Editar cabeçalho`.
+- Os dados editáveis do cabeçalho são:
+  - nome da empresa;
+  - subtítulo;
+  - Instagram;
+  - WhatsApp;
+  - telefone;
+  - endereço;
+  - logo como `String` base64 opcional.
+- A persistência do cabeçalho usa `CabecalhoPreferenciasRepository` e `SharedPreferences`, com fallback para `CabecalhoEmpresa.systemCardRs()` quando não há dados salvos ou quando a logo base64 é inválida.
+- A seleção de logo permanece responsabilidade da UI, usando `file_picker`, aceitando `png`, `jpg`, `jpeg` e `webp` com limite de 768 KB.
+- `PedidoPageViewModel` não acessa `BuildContext`, seletor de arquivos, controllers de texto ou APIs visuais.
+- `CabecalhoApp` renderiza `logoBase64` com `Image.memory` quando existe imagem válida e mantém o fallback textual `SC` quando a logo está ausente, removida ou inválida.
+- O editor do cabeçalho foi revisado para largura estreita: os campos usam largura calculada pelo tamanho disponível da janela, evitando campos fixos que causem overflow em mobile.
+- O cadastro de clientes está integrado pelo botão `Clientes` em `ReciboPedido`, exibindo `ClientesPainel` em diálogo dentro da mesma composição da `PedidoPage`.
+- Clientes são persistidos no SQLite embarcado da feature por `ClienteRepositorySqlite`, compartilhando `ReciboDatabase` com recibos.
+- O schema SQLite atual para este contrato é `ReciboDatabase.version == 2`, com tabelas de recibos, itens e clientes.
+- A tabela `clientes` mantém índice único `idx_clientes_telefone` para bloquear telefone duplicado normalizado e índice `idx_clientes_nome` para apoiar listagem e pesquisa.
+- O telefone do cliente é normalizado para apenas dígitos no domínio/repository e exibido com máscara na apresentação.
+- A busca de clientes funciona por nome e por telefone, inclusive quando o termo é digitado com máscara ou apenas com dígitos.
+- Ao cadastrar um cliente pelo painel, a ViewModel salva no repository, atualiza a lista conforme o termo atual e seleciona o cliente salvo no recibo em edição.
+- Ao selecionar um cliente listado, `PedidoPageViewModel.selecionarCliente` preenche `reciboEmEdicao.cliente` e `reciboEmEdicao.telefone`.
+- Telefone duplicado é exposto à UI como mensagem clara: `Já existe um cliente com este telefone.`.
+- `ClientesPainel` lista clientes com `ListView.builder` e mantém apenas estado local temporário dos campos via `TextEditingController`.
+- Testes antigos ligados ao contador do template Flutter não fazem parte do contrato ativo; `test/widget_test.dart` valida a abertura real de `MyApp` em `PedidoPage`.
+- Impressão real, geração real de PDF, exportação/importação de clientes e PDF real permanecem fora do escopo deste fechamento.
+- Contrato revisado neste slice:
+  - `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Planejamento - Número incremental e data de criação do recibo
+- Tarefa relacionada: `docs/codex/recibo/recibo-26-05-15-1.md`.
+- A `PedidoPage` continua sendo a tela real impactada; não deve ser criada `ReciboPage`, rota própria ou feature paralela.
+- O número do recibo deve deixar de depender de digitação manual para recibos novos.
+- Recibos novos devem receber número incremental automático, calculado a partir dos recibos já persistidos.
+- O formato recomendado para o número incremental é com preenchimento à esquerda, preservando o padrão visual atual dos testes, como `0001`, `0002`, `0003`.
+- A regra de incremento deve considerar compatibilidade com recibos antigos que possam ter número digitado manualmente ou não numérico.
+- O objeto persistido e retornado pelo repository deve expor `criadoEm` como `DateTime`.
+- Atualizações de recibos existentes devem preservar a data de criação original.
+- A `PedidoPageViewModel` deve coordenar a preparação do próximo número sem acessar `BuildContext`.
+- A UI do formulário deve comunicar que o número é gerado automaticamente, quando o fluxo final for integrado.
+- Contrato a ser preservado:
+  - o recibo continua integrado à composição da `PedidoPage`;
+  - a fonte de verdade do recibo em edição continua sendo a `PedidoPageViewModel`;
+  - widgets não devem acessar SQLite ou repository diretamente;
+  - DTOs e mapas SQLite não devem vazar para UI.
+- Slices planejados:
+  - Slice 1: regra incremental e garantia de `criadoEm` na camada de repository/SQLite, sem alteração visual direta;
+  - Slice 2: integração da numeração incremental na ViewModel e na UI do formulário.
+
+## Atualização do slice 1/2 - Número incremental e data de criação
+- O contrato `ReciboRepository` passou a expor `proximoNumero()`, permitindo testar e consumir a geração incremental sem vazar detalhes de SQLite para ViewModel ou UI.
+- `ReciboRepositorySqlite` usa o banco SQLite como fonte de verdade para calcular o próximo número do recibo.
+- A regra considera apenas números já persistidos compostos exclusivamente por dígitos, preservando compatibilidade com recibos antigos que tenham números manuais ou não numéricos.
+- O formato gerado mantém preenchimento à esquerda com quatro posições, como `0001`, `0002` e `0003`.
+- Ao salvar um recibo novo sem número preenchido, o repository atribui automaticamente o próximo número antes da validação de domínio.
+- Ao salvar um recibo novo com número já preenchido por fluxo legado ou teste, o número informado é preservado.
+- O objeto retornado por `salvar`, `atualizar`, `buscarPorId`, `listarHistorico` e `pesquisarHistorico` continua sendo `Recibo` de domínio com `criadoEm` reconstruído como `DateTime`.
+- `atualizar` preserva a data de criação original do recibo já persistido.
+- Este slice não teve impacto visual direto na `PedidoPage`: não alterou formulário, widgets, layout, rotas ou Page.
+- A integração visual do número gerado automaticamente no formulário da `PedidoPage` fica registrada para o slice 2.
+
+## Atualização do slice 2/2 - Número automático na ViewModel e UI
+- `PedidoPageViewModel` passou a expor o comando assíncrono `prepararProximoNumeroRecibo()`.
+- Quando há `ReciboRepository` configurado, recibos novos podem ser preparados com o próximo número incremental antes da edição ou do salvamento.
+- A `PedidoPage` chama a preparação inicial do número pela ViewModel, sem acessar SQLite diretamente e sem mover regra para widget.
+- `iniciarNovoRecibo` recria o recibo em edição e recalcula o próximo número quando o repository está disponível.
+- `salvarRecibo` tenta preparar o número antes da validação quando o recibo novo ainda está sem número.
+- O carregamento de recibos do histórico preserva o número já salvo.
+- A duplicação de recibo remove ids e recebe um novo número incremental, evitando persistir cópias com número textual derivado do recibo original.
+- `ReciboFormulario` mantém o campo `Número do recibo` visível, mas agora ele é somente leitura no fluxo da `PedidoPage`.
+- O campo informa `Gerado automaticamente pelo sistema`, deixando claro que o usuário não precisa digitar o número manualmente.
+- Widgets continuam sem acesso a repository, DTO, mapas SQLite ou `BuildContext` na ViewModel.
+- Não foi criada `ReciboPage`, rota paralela ou feature nova; a implementação permanece em `lib/features/pedido_page/`.

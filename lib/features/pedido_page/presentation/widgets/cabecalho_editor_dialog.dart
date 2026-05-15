@@ -1,0 +1,416 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+
+import '../../domain/models/cabecalho_empresa.dart';
+
+class CabecalhoEditorDialog extends StatefulWidget {
+  const CabecalhoEditorDialog({
+    required this.cabecalho,
+    required this.onSalvar,
+    required this.onRemoverLogo,
+    required this.onRestaurarPadrao,
+    this.salvando = false,
+    this.erro,
+    super.key,
+  });
+
+  final CabecalhoEmpresa cabecalho;
+  final Future<void> Function(CabecalhoEmpresa cabecalho) onSalvar;
+  final Future<void> Function() onRemoverLogo;
+  final Future<void> Function() onRestaurarPadrao;
+  final bool salvando;
+  final String? erro;
+
+  @override
+  State<CabecalhoEditorDialog> createState() => _CabecalhoEditorDialogState();
+}
+
+class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
+  static const int _tamanhoMaximoLogoBytes = 768 * 1024;
+
+  late final TextEditingController _nomeController;
+  late final TextEditingController _subtituloController;
+  late final TextEditingController _instagramController;
+  late final TextEditingController _whatsappController;
+  late final TextEditingController _telefoneController;
+  late final TextEditingController _enderecoController;
+  String? _logoBase64;
+  String? _erroSelecaoLogo;
+  bool _salvandoLocal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final cabecalho = widget.cabecalho;
+    _nomeController = TextEditingController(text: cabecalho.nomeEmpresa);
+    _subtituloController = TextEditingController(text: cabecalho.subtitulo);
+    _instagramController = TextEditingController(text: cabecalho.instagram);
+    _whatsappController = TextEditingController(text: cabecalho.whatsapp);
+    _telefoneController = TextEditingController(text: cabecalho.telefone);
+    _enderecoController = TextEditingController(text: cabecalho.endereco);
+    _logoBase64 = cabecalho.logoBase64;
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _subtituloController.dispose();
+    _instagramController.dispose();
+    _whatsappController.dispose();
+    _telefoneController.dispose();
+    _enderecoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final larguraConteudo = (MediaQuery.sizeOf(context).width - 96).clamp(
+      280.0,
+      720.0,
+    );
+    final usarDuasColunas = larguraConteudo >= 640;
+    final larguraCampo = usarDuasColunas
+        ? (larguraConteudo - 12) / 2
+        : larguraConteudo;
+    final salvando = widget.salvando || _salvandoLocal;
+    final erro = _erroSelecaoLogo ?? widget.erro;
+
+    return AlertDialog(
+      title: const Text('Editar cabeçalho'),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: larguraConteudo),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _LogoEditor(
+                logoBase64: _logoBase64,
+                nomeEmpresa: _nomeController.text,
+                onSelecionarLogo: salvando ? null : _selecionarLogo,
+                onRemoverLogo: salvando ? null : _removerLogo,
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-nome'),
+                    controller: _nomeController,
+                    label: 'Nome da empresa',
+                    largura: larguraCampo,
+                  ),
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-subtitulo'),
+                    controller: _subtituloController,
+                    label: 'Subtítulo',
+                    largura: larguraCampo,
+                  ),
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-instagram'),
+                    controller: _instagramController,
+                    label: 'Instagram',
+                    largura: larguraCampo,
+                  ),
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-whatsapp'),
+                    controller: _whatsappController,
+                    label: 'WhatsApp',
+                    largura: larguraCampo,
+                  ),
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-telefone'),
+                    controller: _telefoneController,
+                    label: 'Telefone',
+                    largura: larguraCampo,
+                  ),
+                  _CampoCabecalho(
+                    key: const ValueKey('cabecalho-editor-endereco'),
+                    controller: _enderecoController,
+                    label: 'Endereço',
+                    largura: larguraConteudo,
+                  ),
+                ],
+              ),
+              if (erro != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  erro,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: salvando ? null : _restaurarPadrao,
+          child: const Text('Restaurar padrão'),
+        ),
+        TextButton(
+          onPressed: salvando ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton.icon(
+          key: const ValueKey('cabecalho-editor-salvar'),
+          onPressed: salvando ? null : _salvar,
+          icon: salvando
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save_outlined),
+          label: const Text('Salvar'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selecionarLogo() async {
+    setState(() {
+      _erroSelecaoLogo = null;
+    });
+
+    final resultado = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
+      withData: true,
+    );
+
+    if (resultado == null || resultado.files.isEmpty) {
+      return;
+    }
+
+    final arquivo = resultado.files.single;
+    final bytes = arquivo.bytes;
+    if (bytes == null) {
+      setState(() {
+        _erroSelecaoLogo = 'Não foi possível ler a imagem selecionada.';
+      });
+      return;
+    }
+
+    if (bytes.length > _tamanhoMaximoLogoBytes) {
+      setState(() {
+        _erroSelecaoLogo = 'Selecione uma imagem de até 768 KB.';
+      });
+      return;
+    }
+
+    setState(() {
+      _logoBase64 = base64Encode(bytes);
+      _erroSelecaoLogo = null;
+    });
+  }
+
+  Future<void> _removerLogo() async {
+    setState(() {
+      _logoBase64 = null;
+      _erroSelecaoLogo = null;
+      _salvandoLocal = true;
+    });
+
+    await widget.onRemoverLogo();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _salvandoLocal = false;
+    });
+  }
+
+  Future<void> _restaurarPadrao() async {
+    setState(() {
+      _salvandoLocal = true;
+      _erroSelecaoLogo = null;
+    });
+
+    await widget.onRestaurarPadrao();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _salvandoLocal = false;
+    });
+
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _salvar() async {
+    setState(() {
+      _salvandoLocal = true;
+      _erroSelecaoLogo = null;
+    });
+
+    final cabecalhoAtualizado = widget.cabecalho.copyWith(
+      nomeEmpresa: _nomeController.text,
+      subtitulo: _subtituloController.text,
+      instagram: _instagramController.text,
+      whatsapp: _whatsappController.text,
+      telefone: _telefoneController.text,
+      endereco: _enderecoController.text,
+      logoBase64: _logoBase64,
+      removerLogoBase64: _logoBase64 == null,
+      removerLogoAssetPath: _logoBase64 != null,
+    );
+
+    await widget.onSalvar(cabecalhoAtualizado);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _salvandoLocal = false;
+    });
+
+    Navigator.of(context).pop();
+  }
+}
+
+class _LogoEditor extends StatelessWidget {
+  const _LogoEditor({
+    required this.logoBase64,
+    required this.nomeEmpresa,
+    required this.onSelecionarLogo,
+    required this.onRemoverLogo,
+  });
+
+  final String? logoBase64;
+  final String nomeEmpresa;
+  final VoidCallback? onSelecionarLogo;
+  final VoidCallback? onRemoverLogo;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _PreviewLogo(logoBase64: logoBase64, nomeEmpresa: nomeEmpresa),
+        OutlinedButton.icon(
+          key: const ValueKey('cabecalho-editor-selecionar-logo'),
+          onPressed: onSelecionarLogo,
+          icon: const Icon(Icons.image_outlined),
+          label: const Text('Selecionar logo'),
+        ),
+        TextButton.icon(
+          key: const ValueKey('cabecalho-editor-remover-logo'),
+          onPressed: onRemoverLogo,
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Remover logo'),
+          style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewLogo extends StatelessWidget {
+  const _PreviewLogo({required this.logoBase64, required this.nomeEmpresa});
+
+  final String? logoBase64;
+  final String nomeEmpresa;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytesLogo();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (bytes != null) {
+      return Semantics(
+        label: 'Prévia da logo $nomeEmpresa',
+        image: true,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            bytes,
+            width: 72,
+            height: 72,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) =>
+                _fallback(colorScheme),
+          ),
+        ),
+      );
+    }
+
+    return _fallback(colorScheme);
+  }
+
+  Widget _fallback(ColorScheme colorScheme) {
+    return Container(
+      width: 72,
+      height: 72,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'SC',
+        style: TextStyle(
+          color: colorScheme.onPrimary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Uint8List? _bytesLogo() {
+    final logo = logoBase64;
+    if (logo == null) {
+      return null;
+    }
+
+    try {
+      return base64Decode(logo);
+    } on FormatException {
+      return null;
+    }
+  }
+}
+
+class _CampoCabecalho extends StatelessWidget {
+  const _CampoCabecalho({
+    required this.controller,
+    required this.label,
+    required this.largura,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final double largura;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: largura,
+      child: TextField(
+        key: key,
+        controller: controller,
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          labelText: label,
+        ),
+      ),
+    );
+  }
+}
