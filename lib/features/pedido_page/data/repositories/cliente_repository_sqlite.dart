@@ -102,15 +102,16 @@ class ClienteRepositorySqlite implements ClienteRepository {
     final database = await _reciboDatabase.open();
     final telefone = Cliente.normalizarTelefone(termoNormalizado);
     final filtroNome = '%${termoNormalizado.toLowerCase()}%';
+    final filtroEmail = filtroNome;
     final filtroTelefone = '%$telefone%';
     final clientes = await database.query(
       'clientes',
       where: telefone.isEmpty
-          ? 'LOWER(nome) LIKE ?'
-          : 'LOWER(nome) LIKE ? OR telefone LIKE ?',
+          ? 'LOWER(nome) LIKE ? OR LOWER(email) LIKE ?'
+          : 'LOWER(nome) LIKE ? OR LOWER(email) LIKE ? OR telefone LIKE ?',
       whereArgs: telefone.isEmpty
-          ? <Object?>[filtroNome]
-          : <Object?>[filtroNome, filtroTelefone],
+          ? <Object?>[filtroNome, filtroEmail]
+          : <Object?>[filtroNome, filtroEmail, filtroTelefone],
       orderBy: 'nome COLLATE NOCASE ASC, id ASC',
     );
 

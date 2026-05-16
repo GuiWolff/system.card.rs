@@ -17,9 +17,13 @@ void main() {
       await reciboDatabase.close();
     });
 
-    test('salva e carrega cliente com telefone normalizado', () async {
+    test('salva e carrega cliente com telefone normalizado e e-mail', () async {
       final salvo = await repository.salvar(
-        Cliente(nome: 'Maria da Silva', telefone: '(51) 9 9999-0000'),
+        Cliente(
+          nome: 'Maria da Silva',
+          telefone: '(51) 9 9999-0000',
+          email: ' maria@exemplo.com ',
+        ),
       );
 
       final carregado = await repository.buscarPorId(salvo.id!);
@@ -28,6 +32,7 @@ void main() {
       expect(carregado, isNotNull);
       expect(carregado!.nome, 'Maria da Silva');
       expect(carregado.telefone, '51999990000');
+      expect(carregado.email, 'maria@exemplo.com');
     });
 
     test(
@@ -42,12 +47,14 @@ void main() {
             id: salvo.id,
             nome: 'Cliente Atualizado',
             telefone: '(51) 98888-2222',
+            email: 'atualizado@exemplo.com',
           ),
         );
 
         expect(atualizado.id, salvo.id);
         expect(atualizado.nome, 'Cliente Atualizado');
         expect(atualizado.telefone, '51988882222');
+        expect(atualizado.email, 'atualizado@exemplo.com');
       },
     );
 
@@ -72,14 +79,20 @@ void main() {
         Cliente(nome: 'Ana Pereira', telefone: '51911111111'),
       );
       await repository.salvar(
-        Cliente(nome: 'Bruno Costa', telefone: '51922222222'),
+        Cliente(
+          nome: 'Bruno Costa',
+          telefone: '51922222222',
+          email: 'bruno@exemplo.com',
+        ),
       );
 
       final porNome = await repository.pesquisar('bruno');
       final porTelefone = await repository.pesquisar('(51) 91111');
+      final porEmail = await repository.pesquisar('exemplo.com');
 
       expect(porNome.single.nome, 'Bruno Costa');
       expect(porTelefone.single.nome, 'Ana Pereira');
+      expect(porEmail.single.nome, 'Bruno Costa');
     });
 
     test('bloqueia telefone duplicado normalizado', () async {
@@ -108,6 +121,17 @@ void main() {
     test('rejeita cliente inválido e atualização sem id', () async {
       await expectLater(
         repository.salvar(Cliente(nome: '', telefone: '123')),
+        throwsArgumentError,
+      );
+
+      await expectLater(
+        repository.salvar(
+          Cliente(
+            nome: 'Cliente com e-mail inválido',
+            telefone: '51999999999',
+            email: 'email-invalido',
+          ),
+        ),
         throwsArgumentError,
       );
 

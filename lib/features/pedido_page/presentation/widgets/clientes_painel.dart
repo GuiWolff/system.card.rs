@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/cliente.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart';
 
@@ -21,7 +22,11 @@ class ClientesPainel extends StatefulWidget {
   final String? erro;
   final String? feedback;
   final ValueChanged<String> onPesquisar;
-  final Future<void> Function({required String nome, required String telefone})
+  final Future<void> Function({
+    required String nome,
+    required String telefone,
+    String email,
+  })
   onCadastrar;
   final ValueChanged<Cliente> onSelecionar;
 
@@ -33,6 +38,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
   late final TextEditingController _buscaController;
   late final TextEditingController _nomeController;
   late final TextEditingController _telefoneController;
+  late final TextEditingController _emailController;
 
   @override
   void initState() {
@@ -40,6 +46,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
     _buscaController = TextEditingController();
     _nomeController = TextEditingController();
     _telefoneController = TextEditingController();
+    _emailController = TextEditingController();
   }
 
   @override
@@ -47,6 +54,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
     _buscaController.dispose();
     _nomeController.dispose();
     _telefoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -62,7 +70,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
         children: [
           Row(
             children: [
-              Icon(Icons.people_alt_outlined, color: colorScheme.primary),
+              FaIcon(FontAwesomeIcons.user, color: colorScheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -76,7 +84,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
               IconButton(
                 tooltip: 'Fechar clientes',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
+                icon: const FaIcon(FontAwesomeIcons.xmark),
               ),
             ],
           ),
@@ -85,8 +93,8 @@ class _ClientesPainelState extends State<ClientesPainel> {
             key: const ValueKey('clientes-painel-busca'),
             controller: _buscaController,
             decoration: const InputDecoration(
-              labelText: 'Pesquisar por nome ou telefone',
-              prefixIcon: Icon(Icons.search),
+              labelText: 'Pesquisar por nome, telefone ou e-mail',
+              prefixIcon: FaIcon(FontAwesomeIcons.magnifyingGlass),
             ),
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.search,
@@ -103,10 +111,14 @@ class _ClientesPainelState extends State<ClientesPainel> {
               padding: const EdgeInsets.all(14),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final usarDuasColunas = constraints.maxWidth >= 640;
-                  final larguraCampo = usarDuasColunas
-                      ? (constraints.maxWidth - 12) / 2
-                      : constraints.maxWidth;
+                  final colunas = constraints.maxWidth >= 900
+                      ? 3
+                      : constraints.maxWidth >= 640
+                      ? 2
+                      : 1;
+                  final larguraCampo = colunas == 1
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - (12 * (colunas - 1))) / colunas;
 
                   return Wrap(
                     spacing: 12,
@@ -120,7 +132,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           controller: _nomeController,
                           decoration: const InputDecoration(
                             labelText: 'Nome do cliente',
-                            prefixIcon: Icon(Icons.person_outline),
+                            prefixIcon: FaIcon(FontAwesomeIcons.user),
                           ),
                           textInputAction: TextInputAction.next,
                         ),
@@ -132,10 +144,23 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           controller: _telefoneController,
                           decoration: const InputDecoration(
                             labelText: 'Telefone',
-                            prefixIcon: Icon(Icons.phone_outlined),
+                            prefixIcon: FaIcon(FontAwesomeIcons.phone),
                           ),
                           keyboardType: TextInputType.phone,
                           inputFormatters: const [TelefoneInputFormatter()],
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      SizedBox(
+                        width: larguraCampo,
+                        child: TextField(
+                          key: const ValueKey('clientes-painel-email'),
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            prefixIcon: FaIcon(FontAwesomeIcons.envelope),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _cadastrarCliente(),
                         ),
@@ -147,7 +172,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           backgroundColor: colorScheme.tertiary,
                           foregroundColor: colorScheme.onTertiary,
                         ),
-                        icon: const Icon(Icons.person_add_alt_1),
+                        icon: const FaIcon(FontAwesomeIcons.userPlus),
                         label: Text(
                           widget.salvando ? 'Salvando...' : 'Cadastrar',
                         ),
@@ -190,6 +215,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
     await widget.onCadastrar(
       nome: _nomeController.text,
       telefone: _telefoneController.text,
+      email: _emailController.text,
     );
   }
 }
@@ -217,9 +243,9 @@ class _ListaClientes extends StatelessWidget {
         final cliente = clientes[index];
         return ListTile(
           key: ValueKey('cliente-${cliente.id ?? index}'),
-          leading: Icon(Icons.person_outline, color: colorScheme.secondary),
+          leading: FaIcon(FontAwesomeIcons.user, color: colorScheme.secondary),
           title: Text(cliente.nome),
-          subtitle: Text(TelefoneInputFormatter.formatar(cliente.telefone)),
+          subtitle: Text(_clienteResumo(cliente)),
           trailing: TextButton(
             onPressed: () => onSelecionar(cliente),
             child: const Text('Selecionar'),
@@ -227,5 +253,14 @@ class _ListaClientes extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _clienteResumo(Cliente cliente) {
+    final telefone = TelefoneInputFormatter.formatar(cliente.telefone);
+    if (cliente.email.isEmpty) {
+      return telefone;
+    }
+
+    return '$telefone\n${cliente.email}';
   }
 }

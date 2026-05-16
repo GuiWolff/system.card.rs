@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/pedido_page.dart';
 
 void main() {
@@ -41,6 +42,10 @@ void main() {
     expect(find.text('SYSTEM CARD - RS'), findsOneWidget);
     expect(find.text('Sistemas de Identificação'), findsOneWidget);
     expect(find.text('@systemcards'), findsOneWidget);
+    expect(_findFaIcon(FontAwesomeIcons.instagram), findsOneWidget);
+    expect(_findFaIcon(FontAwesomeIcons.whatsapp), findsOneWidget);
+    expect(_findFaIcon(FontAwesomeIcons.phone), findsOneWidget);
+    expect(_findFaIcon(FontAwesomeIcons.locationDot), findsOneWidget);
     expect(find.text('Recebido:'), findsOneWidget);
     expect(find.text('24/05/2024'), findsOneWidget);
     expect(find.text('Entrega:'), findsOneWidget);
@@ -72,18 +77,24 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byKey(const ValueKey('Cliente-')), 'Ana Lima');
+    await tester.enterText(
+      find.byKey(const ValueKey('recibo-formulario-cliente')),
+      'Ana Lima',
+    );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Adicionar item'));
+    final botaoAdicionar = find.text('Adicionar item');
+    await tester.ensureVisible(botaoAdicionar);
+    await tester.pumpAndSettle();
+    await tester.tap(botaoAdicionar);
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('descricao-0-')),
+      find.byKey(const ValueKey('produto-descricao-0')),
       'Porta Crachá Vertical',
     );
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('valor-unitario-0-0')),
+      find.byKey(const ValueKey('produto-valor-unitario-0')),
       '8,00',
     );
     await tester.pumpAndSettle();
@@ -93,4 +104,10 @@ void main() {
     expect(find.text('Porta Crachá Vertical'), findsWidgets);
     expect(find.text('8,00'), findsWidgets);
   });
+}
+
+Finder _findFaIcon(FaIconData icon) {
+  return find.byWidgetPredicate(
+    (widget) => widget is FaIcon && widget.icon == icon.data,
+  );
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:system_card_rs/features/pedido_page/domain/models/item_recibo.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/viewmodels/pedido_page_view_model.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/clientes_painel.dart';
@@ -27,6 +27,7 @@ class ReciboPedido extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final recibo = viewModel.reciboEmEdicao;
+      final somenteLeitura = viewModel.reciboSomenteLeitura;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,42 +39,84 @@ class ReciboPedido extends StatelessWidget {
             onGerarPdf: onGerarPdf,
           ),
           const SizedBox(height: 24),
-          ReciboFormulario(
-            recibo: recibo,
-            valorEntradaFormatado: viewModel.valorEntradaFormatado,
-            onNumeroChanged: viewModel.atualizarNumero,
-            onDataRecebimentoChanged: viewModel.atualizarDataRecebimento,
-            onDataEntregaChanged: viewModel.atualizarDataEntrega,
-            onClienteChanged: viewModel.atualizarCliente,
-            onTelefoneChanged: viewModel.atualizarTelefone,
-            onValorEntradaChanged: viewModel.atualizarValorEntradaCentavos,
-            onObservacoesChanged: viewModel.atualizarObservacoes,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final layoutAmplo = constraints.maxWidth >= 1040;
+              final formulario = ReciboFormulario(
+                recibo: recibo,
+                valorEntradaFormatado: viewModel.valorEntradaFormatado,
+                somenteLeitura: somenteLeitura,
+                onNumeroChanged: viewModel.atualizarNumero,
+                onDataRecebimentoChanged: viewModel.atualizarDataRecebimento,
+                onDataEntregaChanged: viewModel.atualizarDataEntrega,
+                onClienteChanged: viewModel.atualizarCliente,
+                onTelefoneChanged: viewModel.atualizarTelefone,
+                onValorEntradaChanged: viewModel.atualizarValorEntradaCentavos,
+                onObservacoesChanged: viewModel.atualizarObservacoes,
+              );
+              final visualizacao = _ReciboVisualizacaoSecao(recibo: recibo);
+
+              if (!layoutAmplo) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    formulario,
+                    const SizedBox(height: 24),
+                    visualizacao,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 11, child: formulario),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 9, child: visualizacao),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           ProdutosServicosTabela(
             itens: recibo.itens,
-            onAdicionarItem: () {
-              viewModel.adicionarItem(
-                const ItemRecibo(
-                  quantidade: 1,
-                  descricao: '',
-                  valorUnitarioCentavos: 0,
-                ),
-              );
-            },
+            onAdicionarItem: () => viewModel.solicitarNovoItem(),
+            onAdicionarItemPeloValorUnitario: (indice) =>
+                viewModel.solicitarNovoItem(indiceReferencia: indice),
             onAtualizarItem: viewModel.atualizarItem,
             onRemoverItem: viewModel.removerItem,
+            somenteLeitura: somenteLeitura,
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Visualização do Recibo',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          VisualizacaoRecibo(recibo: recibo),
         ],
       );
     });
+  }
+}
+
+class _ReciboVisualizacaoSecao extends StatelessWidget {
+  const _ReciboVisualizacaoSecao({required this.recibo});
+
+  final Recibo recibo;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Visualização do Recibo',
+          style: textTheme.titleMedium?.copyWith(
+            color: colorScheme.secondary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        VisualizacaoRecibo(recibo: recibo),
+      ],
+    );
   }
 }
 
@@ -95,165 +138,183 @@ class _ReciboAcoes extends StatelessWidget {
     return Obx(() {
       final erro = viewModel.erro;
       final ultimaAcao = viewModel.ultimaAcaoRecibo;
+      final feedbackCompartilhamento = viewModel.feedbackCompartilhamentoPdf;
+      final somenteLeitura = viewModel.reciboSomenteLeitura;
       final colorScheme = Theme.of(context).colorScheme;
       final textTheme = Theme.of(context).textTheme;
 
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Ações do recibo',
-                style: textTheme.labelLarge?.copyWith(
-                  color: colorScheme.secondary,
-                  fontWeight: FontWeight.w800,
+      return SizedBox(
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ações do recibo',
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.secondary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  FilledButton.icon(
-                    onPressed: viewModel.salvando
-                        ? null
-                        : () async => viewModel.salvarRecibo(),
-                    icon: const Icon(Icons.save),
-                    label: Text(viewModel.salvando ? 'Salvando...' : 'Salvar'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: viewModel.iniciarNovoRecibo,
-                    icon: const Icon(Icons.note_add),
-                    label: const Text('Novo recibo'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: viewModel.carregando
-                        ? null
-                        : () => _abrirHistorico(context),
-                    icon: const Icon(Icons.history),
-                    label: const Text('Histórico'),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('recibo-abrir-clientes'),
-                    onPressed: viewModel.carregandoClientes
-                        ? null
-                        : () => _abrirClientes(context),
-                    icon: const Icon(Icons.people_alt_outlined),
-                    label: const Text('Clientes'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed:
-                        viewModel.imprimindoPdf ||
-                            viewModel.gerandoPdf ||
-                            viewModel.compartilhandoPdf
-                        ? null
-                        : _imprimir,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colorScheme.secondary,
-                      side: BorderSide(color: colorScheme.secondary),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: viewModel.salvando || somenteLeitura
+                          ? null
+                          : () async => viewModel.salvarRecibo(),
+                      icon: const FaIcon(FontAwesomeIcons.floppyDisk),
+                      label: Text(
+                        viewModel.salvando ? 'Salvando...' : 'Salvar',
+                      ),
                     ),
-                    icon: const Icon(Icons.print),
-                    label: Text(
-                      viewModel.imprimindoPdf ? 'Imprimindo...' : 'Imprimir',
+                    OutlinedButton.icon(
+                      onPressed: viewModel.iniciarNovoRecibo,
+                      icon: const FaIcon(FontAwesomeIcons.fileCirclePlus),
+                      label: const Text('Novo recibo'),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed:
-                        viewModel.gerandoPdf ||
-                            viewModel.imprimindoPdf ||
-                            viewModel.compartilhandoPdf
-                        ? null
-                        : _gerarPdf,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colorScheme.tertiary,
-                      side: BorderSide(color: colorScheme.tertiary),
+                    OutlinedButton.icon(
+                      onPressed: viewModel.carregando
+                          ? null
+                          : () => _abrirHistorico(context),
+                      icon: const FaIcon(FontAwesomeIcons.clockRotateLeft),
+                      label: const Text('Histórico'),
                     ),
-                    icon: const Icon(Icons.picture_as_pdf),
-                    label: Text(
-                      viewModel.gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF',
+                    OutlinedButton.icon(
+                      key: const ValueKey('recibo-abrir-clientes'),
+                      onPressed: viewModel.carregandoClientes
+                          ? null
+                          : () => _abrirClientes(context),
+                      icon: const FaIcon(FontAwesomeIcons.users),
+                      label: const Text('Clientes'),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed:
-                        viewModel.compartilhandoPdf ||
-                            viewModel.gerandoPdf ||
-                            viewModel.imprimindoPdf
-                        ? null
-                        : _compartilhar,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colorScheme.secondary,
-                      side: BorderSide(color: colorScheme.outlineVariant),
+                    OutlinedButton.icon(
+                      onPressed:
+                          viewModel.imprimindoPdf ||
+                              viewModel.gerandoPdf ||
+                              viewModel.compartilhandoPdf
+                          ? null
+                          : _imprimir,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.secondary,
+                        side: BorderSide(color: colorScheme.secondary),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.print),
+                      label: Text(
+                        viewModel.imprimindoPdf ? 'Imprimindo...' : 'Imprimir',
+                      ),
                     ),
-                    icon: const Icon(Icons.share_outlined),
-                    label: Text(
-                      viewModel.compartilhandoPdf
-                          ? 'Compartilhando...'
-                          : 'Compartilhar',
+                    OutlinedButton.icon(
+                      onPressed:
+                          viewModel.gerandoPdf ||
+                              viewModel.imprimindoPdf ||
+                              viewModel.compartilhandoPdf
+                          ? null
+                          : _gerarPdf,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.tertiary,
+                        side: BorderSide(color: colorScheme.tertiary),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.filePdf),
+                      label: Text(
+                        viewModel.gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF',
+                      ),
                     ),
+                    OutlinedButton.icon(
+                      onPressed:
+                          viewModel.compartilhandoPdf ||
+                              viewModel.gerandoPdf ||
+                              viewModel.imprimindoPdf
+                          ? null
+                          : _compartilhar,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.secondary,
+                        side: BorderSide(color: colorScheme.outlineVariant),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.shareNodes),
+                      label: Text(
+                        viewModel.compartilhandoPdf
+                            ? 'Compartilhando...'
+                            : 'Compartilhar',
+                      ),
+                    ),
+                  ],
+                ),
+                if (somenteLeitura) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Recibo carregado do histórico em modo somente leitura. '
+                    'Use Duplicar no histórico para editar uma cópia.',
                   ),
                 ],
-              ),
-              if (viewModel.reciboAtualSalvo) ...[
-                const SizedBox(height: 8),
-                const Text('Recibo salvo.'),
+                if (viewModel.reciboAtualSalvo) ...[
+                  const SizedBox(height: 8),
+                  const Text('Recibo salvo.'),
+                ],
+                if (ultimaAcao == 'imprimir-preparado') ...[
+                  const SizedBox(height: 8),
+                  const Text('Impressão preparada para integração futura.'),
+                ],
+                if (ultimaAcao == 'impressao-em-andamento') ...[
+                  const SizedBox(height: 8),
+                  const Text('Preparando impressão...'),
+                ],
+                if (ultimaAcao == 'impressao-concluida') ...[
+                  const SizedBox(height: 8),
+                  const Text('Recibo enviado para impressão.'),
+                ],
+                if (ultimaAcao == 'impressao-cancelada') ...[
+                  const SizedBox(height: 8),
+                  const Text('Impressão cancelada.'),
+                ],
+                if (ultimaAcao == 'pdf-preparado') ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Geração de PDF preparada para integração futura.',
+                  ),
+                ],
+                if (ultimaAcao == 'pdf-gerado') ...[
+                  const SizedBox(height: 8),
+                  const Text('PDF gerado para visualização.'),
+                ],
+                if (ultimaAcao == 'compartilhamento-preparado') ...[
+                  const SizedBox(height: 8),
+                  const Text('Escolha como compartilhar o PDF.'),
+                ],
+                if (ultimaAcao == 'compartilhando-pdf') ...[
+                  const SizedBox(height: 8),
+                  const Text('Preparando compartilhamento...'),
+                ],
+                if (ultimaAcao == 'pdf-compartilhado') ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    feedbackCompartilhamento ?? 'Compartilhamento iniciado.',
+                  ),
+                ],
+                if (ultimaAcao == 'pdf-salvo') ...[
+                  const SizedBox(height: 8),
+                  const Text('PDF salvo.'),
+                ],
+                if (ultimaAcao == 'compartilhamento-cancelado') ...[
+                  const SizedBox(height: 8),
+                  const Text('Compartilhamento cancelado.'),
+                ],
+                if (erro != null) ...[
+                  const SizedBox(height: 8),
+                  Text(erro, style: TextStyle(color: colorScheme.error)),
+                ],
               ],
-              if (ultimaAcao == 'imprimir-preparado') ...[
-                const SizedBox(height: 8),
-                const Text('Impressão preparada para integração futura.'),
-              ],
-              if (ultimaAcao == 'impressao-em-andamento') ...[
-                const SizedBox(height: 8),
-                const Text('Preparando impressão...'),
-              ],
-              if (ultimaAcao == 'impressao-concluida') ...[
-                const SizedBox(height: 8),
-                const Text('Recibo enviado para impressão.'),
-              ],
-              if (ultimaAcao == 'impressao-cancelada') ...[
-                const SizedBox(height: 8),
-                const Text('Impressão cancelada.'),
-              ],
-              if (ultimaAcao == 'pdf-preparado') ...[
-                const SizedBox(height: 8),
-                const Text('Geração de PDF preparada para integração futura.'),
-              ],
-              if (ultimaAcao == 'pdf-gerado') ...[
-                const SizedBox(height: 8),
-                const Text('PDF gerado para visualização.'),
-              ],
-              if (ultimaAcao == 'compartilhamento-preparado') ...[
-                const SizedBox(height: 8),
-                const Text('Escolha como compartilhar o PDF.'),
-              ],
-              if (ultimaAcao == 'compartilhando-pdf') ...[
-                const SizedBox(height: 8),
-                const Text('Preparando compartilhamento...'),
-              ],
-              if (ultimaAcao == 'pdf-compartilhado') ...[
-                const SizedBox(height: 8),
-                const Text('Compartilhamento iniciado.'),
-              ],
-              if (ultimaAcao == 'pdf-salvo') ...[
-                const SizedBox(height: 8),
-                const Text('PDF salvo.'),
-              ],
-              if (ultimaAcao == 'compartilhamento-cancelado') ...[
-                const SizedBox(height: 8),
-                const Text('Compartilhamento cancelado.'),
-              ],
-              if (erro != null) ...[
-                const SizedBox(height: 8),
-                Text(erro, style: TextStyle(color: colorScheme.error)),
-              ],
-            ],
+            ),
           ),
         ),
       );

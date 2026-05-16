@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -89,37 +88,13 @@ class _PedidoPageState extends State<PedidoPage> {
       appBar: AppBar(title: const Text('Pedido')),
       body: PedidoPageLayout(
         cabecalho: Obx(
-          () => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  key: const ValueKey('pedido-page-editar-cabecalho'),
-                  onPressed:
-                      _viewModel.carregandoCabecalho ||
-                          _viewModel.salvandoCabecalho
-                      ? null
-                      : _abrirEditorCabecalho,
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Editar cabeçalho'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              CabecalhoApp(
-                cabecalho: _viewModel.cabecalhoEmpresa,
-                feedback: _viewModel.feedbackCabecalho,
-                onImprimir: () {
-                  unawaited(_imprimirRecibo(acionadoPeloCabecalho: true));
-                },
-                onGerarPdf: () {
-                  unawaited(_abrirPreviaPdf(acionadoPeloCabecalho: true));
-                },
-                onMaisOpcoes: () =>
-                    _viewModel.registrarAcaoCabecalho('mais-opcoes'),
-                onSelecionarMaisOpcao: _viewModel.selecionarOpcaoCabecalho,
-              ),
-            ],
+          () => CabecalhoApp(
+            cabecalho: _viewModel.cabecalhoEmpresa,
+            feedback: _viewModel.feedbackCabecalho,
+            onEditarCabecalho: _abrirEditorCabecalho,
+            editarCabecalhoHabilitado:
+                !_viewModel.carregandoCabecalho &&
+                !_viewModel.salvandoCabecalho,
           ),
         ),
         recibo: _PedidoPageSection(
@@ -137,6 +112,7 @@ class _PedidoPageState extends State<PedidoPage> {
             valorEntrada: _viewModel.valorEntradaFormatado,
             valorAPagarEntrega: _viewModel.valorAPagarEntregaFormatado,
             mensagemValorEntrada: _viewModel.mensagemValorEntrada,
+            somenteLeitura: _viewModel.reciboSomenteLeitura,
             onValorEntradaChanged: _viewModel.atualizarValorEntradaCentavos,
           ),
         ),
@@ -326,6 +302,7 @@ class _PedidoPageState extends State<PedidoPage> {
         widget.reciboCompartilhamentoService.compartilharPorEmail(
           pdfBytes: pdfBytes,
           nomeArquivo: nomeArquivo,
+          destinatarioEmail: _viewModel.emailClienteSelecionado,
         ),
       ReciboCompartilhamentoOpcao.whatsapp =>
         widget.reciboCompartilhamentoService.compartilharPorWhatsapp(
@@ -354,7 +331,7 @@ class _PedidoPageState extends State<PedidoPage> {
       return;
     }
 
-    _viewModel.concluirCompartilhamentoPdf();
+    _viewModel.concluirCompartilhamentoPdf(mensagem: resultado.mensagem);
   }
 
   String _nomeArquivoRecibo() {

@@ -17,7 +17,7 @@ class ReciboDatabase {
     return ReciboDatabase._(databasePath: inMemoryDatabasePath, inMemory: true);
   }
 
-  static const int version = 2;
+  static const int version = 3;
   static const String _databaseName = 'system_card_rs_recibos.db';
 
   final String databasePath;
@@ -73,6 +73,7 @@ class ReciboDatabase {
   Future<void> _onCreate(Database database, int version) async {
     await _createV1(database);
     await _createV2(database);
+    await _createV3(database);
   }
 
   Future<void> _onUpgrade(
@@ -85,6 +86,9 @@ class ReciboDatabase {
     }
     if (oldVersion < 2) {
       await _createV2(database);
+    }
+    if (oldVersion < 3) {
+      await _createV3(database);
     }
   }
 
@@ -150,6 +154,12 @@ CREATE TABLE clientes (
       'CREATE UNIQUE INDEX idx_clientes_telefone ON clientes (telefone)',
     );
     await database.execute('CREATE INDEX idx_clientes_nome ON clientes (nome)');
+  }
+
+  Future<void> _createV3(Database database) async {
+    await database.execute(
+      "ALTER TABLE clientes ADD COLUMN email TEXT NOT NULL DEFAULT ''",
+    );
   }
 
   static void _initializeFfi() {

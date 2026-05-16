@@ -8,6 +8,7 @@ class ResumoPedido extends StatelessWidget {
     required this.valorAPagarEntrega,
     this.mensagemValorEntrada,
     this.onValorEntradaChanged,
+    this.somenteLeitura = false,
     super.key,
   });
 
@@ -16,6 +17,7 @@ class ResumoPedido extends StatelessWidget {
   final String valorAPagarEntrega;
   final String? mensagemValorEntrada;
   final ValueChanged<int>? onValorEntradaChanged;
+  final bool somenteLeitura;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,9 @@ class ResumoPedido extends StatelessWidget {
                         rotulo: 'Valor Entrada:',
                         valor: valorEntrada,
                         mensagemErro: mensagemValorEntrada,
-                        onChanged: onValorEntradaChanged,
+                        onChanged: somenteLeitura
+                            ? null
+                            : onValorEntradaChanged,
                       ),
                       _CampoResumoPedido(
                         largura: larguraCampo,
@@ -92,7 +96,7 @@ class ResumoPedido extends StatelessWidget {
   }
 }
 
-class _CampoResumoPedido extends StatelessWidget {
+class _CampoResumoPedido extends StatefulWidget {
   const _CampoResumoPedido({
     required this.largura,
     required this.rotulo,
@@ -110,55 +114,91 @@ class _CampoResumoPedido extends StatelessWidget {
   final bool destaque;
 
   @override
+  State<_CampoResumoPedido> createState() => _CampoResumoPedidoState();
+}
+
+class _CampoResumoPedidoState extends State<_CampoResumoPedido> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _textoEditavel);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CampoResumoPedido oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_textoEditavel != oldWidget.valor.replaceFirst('R\$ ', '') &&
+        !_focusNode.hasFocus) {
+      _sincronizarTexto(_textoEditavel);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  String get _textoEditavel => widget.valor.replaceFirst('R\$ ', '');
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final corDestaque = colorScheme.tertiary;
 
     return SizedBox(
-      width: largura,
+      width: widget.largura,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            rotulo,
+            widget.rotulo,
             style: textTheme.labelLarge?.copyWith(
-              color: destaque ? corDestaque : colorScheme.onSurface,
+              color: widget.destaque ? corDestaque : colorScheme.onSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
-          if (onChanged == null)
+          if (widget.onChanged == null)
             Container(
               width: double.infinity,
               constraints: const BoxConstraints(minHeight: 48),
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: destaque
+                color: widget.destaque
                     ? corDestaque.withValues(alpha: 0.14)
                     : colorScheme.surface,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: destaque ? corDestaque : colorScheme.outlineVariant,
+                  color: widget.destaque
+                      ? corDestaque
+                      : colorScheme.outlineVariant,
                 ),
               ),
               child: Text(
-                valor,
+                widget.valor,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.titleMedium?.copyWith(
-                  color: destaque ? corDestaque : colorScheme.onSurface,
+                  color: widget.destaque ? corDestaque : colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             )
           else
             TextFormField(
-              key: ValueKey('resumo-valor-entrada-$valor'),
-              initialValue: valor.replaceFirst('R\$ ', ''),
+              key: const ValueKey('resumo-valor-entrada'),
+              controller: _controller,
+              focusNode: _focusNode,
               decoration: InputDecoration(
-                errorText: mensagemErro,
+                errorText: widget.mensagemErro,
                 prefixText: 'R\$ ',
               ),
               style: textTheme.titleMedium?.copyWith(
@@ -170,17 +210,28 @@ class _CampoResumoPedido extends StatelessWidget {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
               ],
-              onChanged: (texto) => onChanged!(_converterMoeda(texto)),
+              onChanged: (texto) => widget.onChanged!(_converterMoeda(texto)),
             ),
-          if (onChanged == null && mensagemErro != null) ...[
+          if (widget.onChanged == null && widget.mensagemErro != null) ...[
             const SizedBox(height: 6),
             Text(
-              mensagemErro!,
+              widget.mensagemErro!,
               style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  void _sincronizarTexto(String texto) {
+    if (_controller.text == texto) {
+      return;
+    }
+
+    _controller.value = TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
     );
   }
 

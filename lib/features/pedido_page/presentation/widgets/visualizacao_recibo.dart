@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/item_recibo.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 
@@ -120,22 +121,22 @@ class _CabecalhoEmpresa extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ContatoEmpresa(
-                    icone: Icons.camera_alt_outlined,
+                    icone: FontAwesomeIcons.instagram,
                     texto: '@systemcards',
                     corIcone: colorScheme.primary,
                   ),
                   _ContatoEmpresa(
-                    icone: Icons.phone_android,
+                    icone: FontAwesomeIcons.whatsapp,
                     texto: '51 998020198',
                     corIcone: colorScheme.tertiary,
                   ),
                   _ContatoEmpresa(
-                    icone: Icons.call,
+                    icone: FontAwesomeIcons.phone,
                     texto: '51 30551025',
                     corIcone: colorScheme.onSurface,
                   ),
                   _ContatoEmpresa(
-                    icone: Icons.location_on,
+                    icone: FontAwesomeIcons.locationDot,
                     texto: 'Rua 20 de Setembro, 528\nCentro - Guaíba - RS',
                     corIcone: colorScheme.onSurface,
                   ),
@@ -156,7 +157,7 @@ class _ContatoEmpresa extends StatelessWidget {
     required this.corIcone,
   });
 
-  final IconData icone;
+  final FaIconData icone;
   final String texto;
   final Color corIcone;
 
@@ -169,7 +170,7 @@ class _ContatoEmpresa extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icone, size: 17, color: corIcone),
+          FaIcon(icone, size: 17, color: corIcone),
           const SizedBox(width: 8),
           Expanded(child: Text(texto, style: textTheme.bodySmall)),
         ],

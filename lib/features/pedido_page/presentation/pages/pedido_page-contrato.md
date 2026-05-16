@@ -1122,3 +1122,253 @@
 - `ReciboPdfService` não foi alterado neste slice, porque a saída A4 já preserva a estrutura funcional esperada e os testes completos continuaram passando.
 - Validação final executada com `flutter analyze`, testes específicos do slice, teste da `PedidoPage` e `flutter test`.
 - Impacto em UI: sim, por modernização do resumo, visualização e dialogs. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 1/4 - Cabeçalho e editor
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de rota, tela ou feature paralela.
+- O botão `Editar cabeçalho` deixou de ser renderizado fora do cabeçalho e passou a ser uma ação contextual interna do `CabecalhoApp`.
+- A `PedidoPage` passa para o `CabecalhoApp`:
+  - `onEditarCabecalho`;
+  - `editarCabecalhoHabilitado`, calculado a partir de `carregandoCabecalho` e `salvandoCabecalho`.
+- As ações visuais `IMPRIMIR`, `GERAR PDF` e `MAIS OPÇÕES` não são mais renderizadas no cabeçalho.
+- Os parâmetros e tipos públicos antigos do `CabecalhoApp` ligados às ações do cabeçalho foram preservados para compatibilidade, mas não participam mais da experiência visual do cabeçalho.
+- Impressão, geração de PDF, compartilhamento, salvamento, histórico e novo recibo permanecem disponíveis no bloco real do recibo quando aplicável, fora do cabeçalho.
+- O cabeçalho mantém identidade, logo, subtítulo, Instagram, WhatsApp, telefone e endereço, com responsividade para mobile, tablet e desktop.
+- Instagram e WhatsApp usam ícones de marca do Font Awesome por meio de `FaIcon` e `FontAwesomeIcons`.
+- Telefone e endereço usam equivalentes semânticos do Font Awesome.
+- O `CabecalhoEditorDialog` foi modernizado com seções visuais, prefix icons nos campos e orientação compacta sobre a logo, mantendo seleção, remoção, restauração e salvamento sem alterar persistência nem regras da `PedidoPageViewModel`.
+- Impacto em UI: sim, por limpeza do cabeçalho, reposicionamento da edição e modernização do dialog. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 2/4 - Layout do recibo e tabela
+- A `PedidoPage` continua usando `ReciboPedido` como bloco real de edição e visualização do recibo, sem criar nova Page, rota ou feature paralela.
+- A área `Ações do recibo` passou a ocupar toda a largura disponível do pai, preservando as ações existentes:
+  - salvar;
+  - novo recibo;
+  - histórico;
+  - clientes;
+  - imprimir;
+  - gerar PDF;
+  - compartilhar.
+- Em larguras amplas, `Dados do Recibo` e `Visualização do Recibo` são renderizados lado a lado dentro do próprio `ReciboPedido`.
+- Em larguras menores, `Dados do Recibo` e `Visualização do Recibo` continuam empilhados verticalmente, sem overflow horizontal.
+- A tabela `Produtos / Serviços` passou a compartilhar métricas de colunas entre cabeçalho e linhas em layout amplo:
+  - quantidade com largura fixa;
+  - descrição como área flexível;
+  - valor unitário com largura fixa;
+  - total com largura fixa e alinhamento à direita;
+  - ação de remoção com largura fixa.
+- Em layout compacto, a tabela continua empilhando os campos com `Wrap`, preservando legibilidade e o uso de `ListView.separated`.
+- Não houve alteração em regra de cálculo, formatadores, persistência, ViewModel, cadastro de clientes, cabeçalho ou compartilhamento neste slice.
+- Impacto em UI: sim, por reorganização responsiva do recibo e correção de alinhamento visual da tabela. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 3/4 - E-mail no domínio e SQLite
+- A `PedidoPage` continua sem alteração visual neste slice.
+- O modelo de domínio `Cliente` passou a aceitar `email` opcional com valor padrão vazio, preservando chamadas existentes que informam apenas nome e telefone.
+- O e-mail do cliente é normalizado com `trim` e validado somente quando preenchido.
+- `ClienteDto`, `ClienteRepositorySqlite` e a tabela SQLite `clientes` passaram a persistir e devolver o e-mail.
+- `ReciboDatabase.version` foi incrementado para permitir migração incremental.
+- A migração de clientes adiciona a coluna `email` com valor padrão vazio, preservando dados existentes.
+- A regra de telefone único em `clientes` foi preservada.
+- A pesquisa de clientes no repository passou a considerar nome, telefone e e-mail.
+- `PedidoPageViewModel.salvarCliente` foi preparado de forma aditiva com parâmetro opcional `email`, sem exigir alteração imediata do `ClientesPainel`.
+- Não foi criado índice específico para e-mail neste slice; como o campo é opcional e a pesquisa usa `LIKE`, a busca textual simples é suficiente para o volume local esperado de clientes.
+- Impacto em UI: não houve alteração visual direta neste slice. O impacto visual fica preparado para o slice 4, quando o e-mail será exibido e editado no painel de clientes da `PedidoPage`.
+
+## Atualização de layout - 2026-05-15 - Slice 4/4 - E-mail na UI e compartilhamento
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`.
+- `ClientesPainel` passou a exibir campo `E-mail` no cadastro de clientes, usando estado local temporário com `TextEditingController`.
+- O campo de e-mail usa teclado de e-mail e ícone semântico de envelope do Font Awesome.
+- A busca visual do painel informa que pesquisa por nome, telefone ou e-mail.
+- A lista de clientes exibe o e-mail abaixo do telefone somente quando o cliente possui e-mail preenchido.
+- A assinatura de cadastro do `ClientesPainel` passou a repassar `email` de forma compatível com `PedidoPageViewModel.salvarCliente`.
+- Ao salvar ou selecionar cliente, a `PedidoPageViewModel` preserva o e-mail do cliente selecionado em estado próprio para uso no compartilhamento.
+- O recibo em edição continua armazenando nome e telefone como antes; o e-mail não foi adicionado ao modelo `Recibo` neste slice.
+- O compartilhamento por e-mail passa a receber o e-mail selecionado como destinatário sugerido.
+- Como o fluxo continua usando `share_plus`, o app não garante destinatário obrigatório nem envio direto; a plataforma abre a folha de compartilhamento do sistema e o app receptor pode ignorar texto, assunto ou anexo.
+- Quando há e-mail cadastrado, o texto compartilhado inclui `Destinatário sugerido`, e o feedback do recibo explicita que o compartilhamento por e-mail foi aberto pela folha do sistema.
+- O PDF compartilhado continua sendo o mesmo arquivo A4 usado por prévia, impressão, WhatsApp e salvamento.
+- Impacto em UI: sim, por inclusão do campo de e-mail no painel de clientes, exibição condicional do e-mail na lista e feedback mais explícito no bloco de ações do recibo. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Revisão planejada de usabilidade - 2026-05-15 - Foco, Enter em item e histórico somente leitura
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O estado atual observado para a tarefa indica que campos de `ReciboFormulario`, `ProdutosServicosTabela` e `ResumoPedido` usam chaves dependentes do valor atual e `initialValue`; ao digitar, a ViewModel reativa reconstrói a UI e os campos podem perder foco.
+- O estado esperado é que campos de texto e número mantenham foco durante a digitação, com identidade estável de widget e estado local de UI para controladores/foco quando necessário.
+- A tela deve preservar estes estados visuais principais:
+  - recibo novo ou duplicado em modo editável;
+  - recibo salvo ainda editável enquanto não for carregado do histórico;
+  - recibo carregado do histórico em modo somente leitura;
+  - histórico aberto com ações de carregar, duplicar e excluir.
+- Dados necessários para renderização permanecem vindos da `PedidoPageViewModel`: `reciboEmEdicao`, `historico`, `totalPedidoFormatado`, `valorEntradaFormatado`, `valorAPagarEntregaFormatado`, estados de carregamento, erro e feedback.
+- Ações disponíveis em modo editável:
+  - preencher dados do recibo;
+  - editar quantidade, descrição e valor unitário de itens;
+  - adicionar item pelo botão `+ Adicionar item`;
+  - adicionar item pressionando Enter no campo `Valor unitário`, quando o valor unitário da linha atual for maior que zero;
+  - remover item;
+  - editar valor de entrada;
+  - salvar, imprimir, gerar PDF, compartilhar, abrir clientes, abrir histórico e iniciar novo recibo.
+- Regra de interação para itens:
+  - em lista vazia, o botão `+ Adicionar item` pode criar a primeira linha de rascunho para digitação;
+  - quando já houver item de referência, uma nova linha não deve ser criada se o valor unitário de referência for zero;
+  - pressionar Enter no campo `Valor unitário` deve usar a mesma regra de guarda do botão para evitar linhas extras com valor zero.
+- Regra de interação para histórico:
+  - `Carregar` deve abrir o recibo salvo em modo somente leitura;
+  - em modo somente leitura, campos do formulário, tabela de itens e valor de entrada não devem aceitar edição;
+  - salvar/atualizar diretamente o recibo carregado do histórico deve ser bloqueado;
+  - `Duplicar` deve continuar sendo o caminho para criar uma cópia editável;
+  - `Novo recibo` deve retornar ao modo editável.
+- Dependências da tela permanecem dentro da feature `pedido_page`, principalmente:
+  - `PedidoPageViewModel`;
+  - `ReciboPedido`;
+  - `ReciboFormulario`;
+  - `ProdutosServicosTabela`;
+  - `ResumoPedido`;
+  - `HistoricoRecibosPainel`;
+  - repositories de recibo e cliente já configurados pela `PedidoPage`.
+- A ViewModel não deve acessar `BuildContext`, `TextEditingController` ou `FocusNode`; controladores e foco são responsabilidade dos widgets.
+- Cada slice da tarefa de usabilidade deve preservar:
+  - arquitetura vertical feature-first;
+  - cálculo de totais por `Recibo`/`ResumoRecibo`;
+  - persistência SQLite e contratos de repository existentes;
+  - uso de `Obx`/`Rx` como estado reativo do projeto;
+  - responsividade atual da `PedidoPage`.
+- Pendências planejadas para execução:
+  - slice 1: estabilizar foco dos campos;
+  - slice 2: adicionar item por Enter com guarda de valor zero;
+  - slice 3: bloquear edição direta de recibo carregado do histórico.
+
+## Atualização de usabilidade - 2026-05-15 - Slice 1/3 - Foco dos campos
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- `ReciboFormulario`, `ProdutosServicosTabela` e `ResumoPedido` passaram a usar chaves estáveis nos campos editáveis, sem incluir texto digitado, quantidade, valor formatado ou centavos na identidade do widget.
+- Os campos editáveis mantêm estado local de apresentação com `TextEditingController` e `FocusNode`, preservando o foco durante digitação mesmo quando a `PedidoPageViewModel` atualiza o estado reativo e a UI reconstrói.
+- A sincronização de valores externos só atualiza o texto do campo quando o campo não está com foco, evitando sobrescrever o texto que o usuário está digitando.
+- O estado de teclado e foco permanece restrito à camada de apresentação; a `PedidoPageViewModel` continua sem `TextEditingController`, `FocusNode` ou acesso a `BuildContext`.
+- As chaves de teste estáveis são:
+  - `recibo-formulario-numero`;
+  - `recibo-formulario-recebido`;
+  - `recibo-formulario-entrega`;
+  - `recibo-formulario-cliente`;
+  - `recibo-formulario-telefone`;
+  - `recibo-formulario-valor-entrada`;
+  - `recibo-formulario-observacoes`;
+  - `produto-quantidade-[indice]`;
+  - `produto-descricao-[indice]`;
+  - `produto-valor-unitario-[indice]`;
+  - `resumo-valor-entrada`.
+- Testes de widget passaram a cobrir foco preservado nos campos do formulário, da tabela de produtos/serviços e do resumo financeiro.
+- Não houve implementação de Enter para adicionar item nem bloqueio de edição de recibo carregado do histórico neste slice; esses comportamentos permanecem reservados aos slices 2 e 3.
+- Impacto em UI: sim, por alteração de comportamento interativo dos campos editáveis. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de usabilidade - 2026-05-15 - Slice 2/3 - Enter em item e guarda de valor zero
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- O botão `Adicionar item` e o Enter no campo `Valor unitário` passam a usar a mesma intenção de ViewModel: `PedidoPageViewModel.solicitarNovoItem`.
+- Em lista vazia, `Adicionar item` continua criando a primeira linha de rascunho com quantidade `1`, descrição vazia e valor unitário `0`.
+- Quando já existe item, uma nova linha só é criada se o item de referência tiver `valorUnitarioCentavos` maior que zero.
+- No botão `Adicionar item`, o item de referência é o último item da lista.
+- No Enter do campo `Valor unitário`, o item de referência é a própria linha submetida.
+- Quando o valor unitário de referência é zero, a ViewModel bloqueia a criação da nova linha e expõe o erro `Informe um valor unitário maior que zero antes de adicionar outro item.` pelo fluxo visual já existente em `ReciboPedido`.
+- O bloqueio por Enter não abre diálogo e preserva o foco no campo `Valor unitário`, permitindo que o usuário corrija o valor imediatamente.
+- O cálculo de `ItemRecibo.totalCentavos` não foi alterado.
+- Não houve alteração de persistência, DTOs ou repositories neste slice.
+- Impacto em UI: sim, por inclusão de atalho de teclado e feedback de bloqueio na tabela de produtos/serviços. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de usabilidade - 2026-05-15 - Slice 3/3 - Histórico somente leitura
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- `PedidoPageViewModel` passou a expor `reciboSomenteLeitura` para indicar quando o recibo atual foi carregado pelo histórico.
+- `carregarRecibo` passa a abrir o recibo salvo em modo somente leitura.
+- `duplicarRecibo` cria uma cópia editável e sai do modo somente leitura.
+- `iniciarNovoRecibo` também sai do modo somente leitura.
+- Métodos públicos de mutação da ViewModel bloqueiam alteração quando `reciboSomenteLeitura` está ativo, incluindo edição de dados do recibo, valor de entrada, itens, criação/remoção de itens e salvamento.
+- O bloqueio de mutação registra o erro `Recibo carregado do histórico está em modo somente leitura. Use Duplicar para editar uma cópia.`.
+- Em modo somente leitura, `ReciboFormulario` desabilita os campos do recibo.
+- Em modo somente leitura, `ProdutosServicosTabela` desabilita campos de itens, remoção e botão `Adicionar item`.
+- Em modo somente leitura, `ResumoPedido` deixa de renderizar o campo editável de valor de entrada e exibe o valor como leitura.
+- Em modo somente leitura, o botão `Salvar` fica desabilitado no bloco `Ações do recibo`.
+- O `ReciboPedido` exibe mensagem orientando que o recibo carregado do histórico está em modo somente leitura e que `Duplicar` no histórico deve ser usado para editar uma cópia.
+- A ação `Carregar` no histórico foi preservada e agora representa visualização sem edição.
+- A ação `Duplicar` foi preservada como caminho explícito para edição.
+- Não houve alteração de repository, DTOs ou schema SQLite neste slice.
+- Impacto em UI: sim, por criação do estado visual de recibo histórico somente leitura, desabilitação de campos e orientação de edição via duplicação. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 1/3 - Ícones Font Awesome no cabeçalho
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- O `CabecalhoApp` preserva identidade, contatos, botão `Editar cabeçalho`, callbacks públicos existentes, feedback e responsividade para mobile, tablet e desktop.
+- Instagram e WhatsApp deixaram de depender de renderização SVG direta e passaram a usar `FaIcon` com:
+  - `FontAwesomeIcons.instagram`;
+  - `FontAwesomeIcons.whatsapp`.
+- Telefone, endereço e edição do cabeçalho também passaram a usar equivalentes do Font Awesome:
+  - `FontAwesomeIcons.phone`;
+  - `FontAwesomeIcons.locationDot`;
+  - `FontAwesomeIcons.penToSquare`.
+- Os assets `lib/resources/icon_instagram.svg` e `lib/resources/icon_whatsapp.svg` permanecem no projeto como legado não removido neste slice.
+- O teste do cabeçalho valida os ícones Font Awesome visíveis e não depende mais de widget SVG.
+- Não houve alteração de regras da `PedidoPageViewModel`, persistência, PDF, compartilhamento ou formulário de recibo.
+- Impacto em UI: sim, por alteração dos ícones visíveis do cabeçalho. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 2/3 - Ícones Font Awesome em dialogs e painéis auxiliares
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- `CabecalhoEditorDialog`, `ClientesPainel`, `HistoricoRecibosPainel`, `ReciboCompartilhamentoDialog` e `ReciboPdfPreviewDialog` passaram a usar `FaIcon` e `FontAwesomeIcons` nos ícones visíveis.
+- O editor de cabeçalho preserva campos, chaves, callbacks e regras de seleção/remoção/restauração/salvamento da logo; apenas os ícones de título, seções, campos e ações foram migrados para Font Awesome.
+- O painel de clientes preserva pesquisa, cadastro, seleção, formatação de telefone, exibição de e-mail e estados de erro/feedback; seus ícones de busca, fechar, cliente, telefone, e-mail e cadastrar usam Font Awesome.
+- O histórico de recibos preserva pesquisa, limpeza, carregamento, duplicação e exclusão de recibos; seus ícones de histórico, busca, limpar/fechar, carregar, copiar e excluir usam Font Awesome.
+- O diálogo de compartilhamento preserva as opções `E-mail`, `WhatsApp` e `Salvar arquivo`, retornando os mesmos valores de `ReciboCompartilhamentoOpcao`; seus ícones usam `shareNodes`, `envelope`, `whatsapp` e `fileArrowDown`.
+- O diálogo de prévia de PDF preserva `ReciboPdfPreviewDialog`, `PdfPreview`, builder customizado de teste e ação `Fechar`; o título usa `FontAwesomeIcons.filePdf`.
+- Testes relacionados passaram a validar os `FaIcon` renderizados nos painéis e diálogos cobertos por `clientes_painel_test.dart` e `pedido_page_test.dart`.
+- Não houve alteração de models, repositories, services, ViewModel, regras de cadastro, pesquisa, histórico, compartilhamento ou preview de PDF.
+- Impacto em UI: sim, por alteração dos ícones visíveis dos dialogs e painéis auxiliares acessados pela `PedidoPage`. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-15 - Slice 3/3 - Ícones Font Awesome no recibo
+- A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
+- `ReciboPedido`, `ReciboFormulario`, `ProdutosServicosTabela` e `VisualizacaoRecibo` passaram a usar `FaIcon` e `FontAwesomeIcons` nos ícones visíveis.
+- As ações do recibo preservam os mesmos callbacks, rótulos, estados de carregamento e bloqueio de somente leitura; apenas os ícones foram migrados para Font Awesome.
+- Os campos do formulário preservam chaves, foco, formatação, leitura/somente leitura e callbacks existentes; seus prefixos visuais agora usam Font Awesome.
+- A tabela de produtos/serviços preserva `ListView.separated`, edição dos itens, Enter no valor unitário, remoção e botão `Adicionar item`; os ícones de adicionar e remover usam Font Awesome.
+- A visualização do recibo preserva layout, dados, totais e tabela da prévia; Instagram e WhatsApp usam ícones de marca do Font Awesome, e telefone/endereço usam equivalentes Font Awesome.
+- Não houve alteração de cálculos, validações, persistência, geração de PDF, impressão, compartilhamento, models, repositories, services ou APIs públicas.
+- Testes relacionados passaram a validar `FaIcon` nos widgets de recibo e visualização cobertos por `recibo_pedido_test.dart` e `visualizacao_recibo_test.dart`.
+- A varredura final da apresentação da feature não encontrou uso remanescente de ícones Material, renderização SVG direta ou import do pacote SVG.
+- Impacto em UI: sim, por alteração dos ícones visíveis do recibo editável, formulário, tabela e prévia visual. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Revisão planejada de funcionalidade - 2026-05-15 - WhatsApp com anexo PDF
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A ação impactada é `Compartilhar > WhatsApp` dentro do popup `ReciboCompartilhamentoDialog`.
+- Estado atual observado no planejamento:
+  - a `PedidoPage` gera os bytes do PDF por `ReciboPdfService.gerarPdfA4`;
+  - a opção `WhatsApp` chama `ReciboCompartilhamentoService.compartilharPorWhatsapp`;
+  - o serviço monta o compartilhamento com arquivo PDF, mas também envia `text`/`subject` com `Recibo em PDF`;
+  - o sintoma informado pelo usuário é que o WhatsApp recebe apenas o texto e não o arquivo.
+- Estado esperado após a tarefa:
+  - a opção `WhatsApp` deve entregar o PDF como payload principal da folha de compartilhamento;
+  - o payload de WhatsApp não deve enviar `text` nem `subject` com `Recibo em PDF`;
+  - o arquivo deve manter bytes reais do PDF, MIME type `application/pdf` e nome previsível `recibo-[numero].pdf`;
+  - e-mail e salvamento devem continuar com o comportamento atual.
+- Regras de interação preservadas:
+  - o recibo deve ser validado antes de gerar e compartilhar PDF;
+  - a tela pode continuar abrindo a folha de compartilhamento do sistema;
+  - a mensagem de feedback não deve prometer que o WhatsApp concluiu o envio, apenas que o PDF foi enviado para compartilhamento;
+  - `PedidoPageViewModel` não deve acessar `BuildContext`, `share_plus`, arquivos temporários ou widgets.
+- Pontos que os slices precisam preservar:
+  - não alterar geração A4 em `ReciboPdfService`;
+  - não remover a opção `WhatsApp` do popup;
+  - não criar deep link nativo de WhatsApp para anexo PDF;
+  - não quebrar o compartilhamento por e-mail com destinatário sugerido;
+  - não quebrar o fluxo de salvar arquivo.
+- Validações esperadas:
+  - teste unitário de `ReciboCompartilhamentoService` garantindo que WhatsApp compartilha arquivo PDF sem texto/assunto;
+  - teste de `PedidoPage` selecionando `WhatsApp` e confirmando bytes/nome enviados ao serviço fake;
+  - `flutter analyze`;
+  - testes específicos de compartilhamento e da tela.
+- Continuidade planejada:
+  - executar primeiro `docs/codex/funcionalidade/funcionalidade-26-05-15-1-parte_1.md`;
+  - executar depois `docs/codex/funcionalidade/funcionalidade-26-05-15-1-parte_2.md`.
+
+## Atualização de funcionalidade - 2026-05-15 - Slice 2/2 - WhatsApp com PDF pela PedidoPage
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O fluxo visível `Compartilhar > WhatsApp` abre o `ReciboCompartilhamentoDialog`, aguarda a seleção da opção `WhatsApp` e só então gera o PDF por `ReciboPdfService.gerarPdfA4`.
+- A opção `WhatsApp` envia para `ReciboCompartilhamentoService.compartilharPorWhatsapp` os mesmos bytes retornados pela geração A4 do recibo atual.
+- O nome do arquivo enviado ao compartilhamento segue o padrão `recibo-[numero].pdf`, usando o número do recibo atual sanitizado.
+- Para o recibo número `0042`, o nome esperado é `recibo-0042.pdf`.
+- O feedback do WhatsApp permanece limitado à abertura/envio para compartilhamento, sem prometer conclusão do envio dentro do aplicativo receptor.
+- Os fluxos de e-mail, salvar arquivo, imprimir e gerar PDF foram preservados.
+- Teste de widget da `PedidoPage` cobre a seleção da opção `WhatsApp` no `ReciboCompartilhamentoDialog` com serviço fake, validando destino `whatsapp`, bytes do PDF gerado e nome `recibo-0042.pdf`.
+- Impacto em UI: não houve alteração visual neste slice; o impacto é comportamental e de cobertura de teste no fluxo de compartilhamento por WhatsApp.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.

@@ -19,11 +19,52 @@ void main() {
     final resultado = await service.compartilharPorEmail(
       pdfBytes: bytes,
       nomeArquivo: 'recibo-0042.pdf',
+      destinatarioEmail: 'cliente@exemplo.com',
     );
 
     expect(resultado.status, ReciboCompartilhamentoStatus.concluido);
+    expect(
+      resultado.mensagem,
+      'Compartilhamento por e-mail aberto pela folha do sistema. '
+      'Destinatário sugerido: cliente@exemplo.com.',
+    );
     expect(paramsRecebidos, isNotNull);
     expect(paramsRecebidos!.subject, 'Recibo em PDF');
+    expect(
+      paramsRecebidos!.text,
+      'Destinatário sugerido: cliente@exemplo.com\n\n'
+      'Segue o recibo em PDF.',
+    );
+    expect(paramsRecebidos!.fileNameOverrides, ['recibo-0042.pdf']);
+    expect(paramsRecebidos!.files, hasLength(1));
+    expect(paramsRecebidos!.files!.single.mimeType, 'application/pdf');
+    expect(await paramsRecebidos!.files!.single.readAsBytes(), bytes);
+  });
+
+  test('compartilharPorWhatsapp envia PDF sem texto nem assunto', () async {
+    final bytes = Uint8List.fromList([37, 80, 68, 70]);
+    ShareParams? paramsRecebidos;
+    final service = ReciboCompartilhamentoService(
+      compartilharPdf: (params) async {
+        paramsRecebidos = params;
+        return const ShareResult('whatsapp', ShareResultStatus.success);
+      },
+    );
+
+    final resultado = await service.compartilharPorWhatsapp(
+      pdfBytes: bytes,
+      nomeArquivo: 'recibo-0042.pdf',
+    );
+
+    expect(resultado.status, ReciboCompartilhamentoStatus.concluido);
+    expect(
+      resultado.mensagem,
+      'Recibo enviado para compartilhamento por WhatsApp.',
+    );
+    expect(paramsRecebidos, isNotNull);
+    expect(paramsRecebidos!.title, 'Compartilhar recibo por WhatsApp');
+    expect(paramsRecebidos!.text, isNull);
+    expect(paramsRecebidos!.subject, isNull);
     expect(paramsRecebidos!.fileNameOverrides, ['recibo-0042.pdf']);
     expect(paramsRecebidos!.files, hasLength(1));
     expect(paramsRecebidos!.files!.single.mimeType, 'application/pdf');

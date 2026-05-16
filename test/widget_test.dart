@@ -7,7 +7,8 @@ void main() {
 
     expect(find.text('Pedido'), findsWidgets);
     expect(find.text('SYSTEM CARD - RS'), findsWidgets);
-    expect(find.text('IMPRIMIR'), findsOneWidget);
+    expect(find.text('Editar cabeçalho'), findsOneWidget);
+    expect(find.text('IMPRIMIR'), findsNothing);
     expect(find.text('Recibo'), findsOneWidget);
     expect(find.text('Dados do Recibo'), findsOneWidget);
     expect(find.text('RESUMO'), findsOneWidget);

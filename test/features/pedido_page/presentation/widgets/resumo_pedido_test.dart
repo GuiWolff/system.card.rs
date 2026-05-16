@@ -24,10 +24,7 @@ void main() {
     expect(find.text('Valor Entrada:'), findsOneWidget);
     expect(find.text('Valor a pagar na Entrega:'), findsOneWidget);
     expect(find.text('R\$ 123,45'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey(r'resumo-valor-entrada-R$ 45,00')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('resumo-valor-entrada')), findsOneWidget);
     expect(find.text('R\$ 78,45'), findsOneWidget);
   });
 
@@ -50,12 +47,48 @@ void main() {
     );
 
     await tester.enterText(
-      find.byKey(const ValueKey(r'resumo-valor-entrada-R$ 0,00')),
+      find.byKey(const ValueKey('resumo-valor-entrada')),
       '25,50',
     );
     await tester.pump();
 
     expect(valorRecebido, 2550);
+  });
+
+  testWidgets('ResumoPedido mantém foco ao atualizar valor de entrada', (
+    WidgetTester tester,
+  ) async {
+    var valorEntrada = 'R\$ 0,00';
+
+    Future<void> pumpResumo() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ResumoPedido(
+              totalPedido: 'R\$ 100,00',
+              valorEntrada: valorEntrada,
+              valorAPagarEntrega: 'R\$ 100,00',
+              onValorEntradaChanged: (valor) {
+                valorEntrada = 'R\$ 0,0$valor';
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpResumo();
+
+    final campo = find.byKey(const ValueKey('resumo-valor-entrada'));
+    await tester.tap(campo);
+    await tester.enterText(campo, '1');
+    await pumpResumo();
+
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+    final editableText = tester.widget<EditableText>(
+      find.descendant(of: campo, matching: find.byType(EditableText)),
+    );
+    expect(editableText.focusNode.hasFocus, isTrue);
   });
 
   testWidgets('ResumoPedido exibe erro de valor de entrada', (

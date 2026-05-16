@@ -1,41 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/pedido_page.dart';
 
 void main() {
   const logoPngBase64 =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axc3V8AAAAASUVORK5CYII=';
 
-  testWidgets('CabecalhoApp renderiza identidade, contatos e ações', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CabecalhoApp(
-            cabecalho: const CabecalhoEmpresa.systemCardRs(),
-            onImprimir: () {},
-            onGerarPdf: () {},
-            onMaisOpcoes: () {},
+  testWidgets(
+    'CabecalhoApp renderiza identidade, contatos e edição integrada',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CabecalhoApp(
+              cabecalho: const CabecalhoEmpresa.systemCardRs(),
+              onImprimir: () {},
+              onGerarPdf: () {},
+              onMaisOpcoes: () {},
+              onEditarCabecalho: () {},
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('SYSTEM CARD - RS'), findsOneWidget);
-    expect(find.text('Sistemas de Identificação'), findsOneWidget);
-    expect(find.text('@systemcards'), findsOneWidget);
-    expect(find.text('51 998020198'), findsOneWidget);
-    expect(find.text('51 30551025'), findsOneWidget);
-    expect(
-      find.text('Rua 20 de Setembro, 528 - Centro - Guaíba - RS'),
-      findsOneWidget,
-    );
-    expect(find.text('IMPRIMIR'), findsOneWidget);
-    expect(find.text('GERAR PDF'), findsOneWidget);
-    expect(find.text('MAIS OPÇÕES'), findsOneWidget);
-    expect(find.text('SC'), findsOneWidget);
-  });
+      expect(find.text('SYSTEM CARD - RS'), findsOneWidget);
+      expect(find.text('Sistemas de Identificação'), findsOneWidget);
+      expect(find.text('@systemcards'), findsOneWidget);
+      expect(find.text('51 998020198'), findsOneWidget);
+      expect(find.text('51 30551025'), findsOneWidget);
+      expect(
+        find.text('Rua 20 de Setembro, 528 - Centro - Guaíba - RS'),
+        findsOneWidget,
+      );
+      expect(find.text('Editar cabeçalho'), findsOneWidget);
+      expect(find.text('IMPRIMIR'), findsNothing);
+      expect(find.text('GERAR PDF'), findsNothing);
+      expect(find.text('MAIS OPÇÕES'), findsNothing);
+      expect(_findFaIcon(FontAwesomeIcons.instagram), findsOneWidget);
+      expect(_findFaIcon(FontAwesomeIcons.whatsapp), findsOneWidget);
+      expect(_findFaIcon(FontAwesomeIcons.phone), findsOneWidget);
+      expect(_findFaIcon(FontAwesomeIcons.locationDot), findsOneWidget);
+      expect(_findFaIcon(FontAwesomeIcons.penToSquare), findsOneWidget);
+      expect(find.text('SC'), findsOneWidget);
+    },
+  );
 
   testWidgets('CabecalhoApp renderiza logo base64 quando existir', (
     WidgetTester tester,
@@ -52,6 +61,7 @@ void main() {
             onImprimir: () {},
             onGerarPdf: () {},
             onMaisOpcoes: () {},
+            onEditarCabecalho: () {},
           ),
         ),
       ),
@@ -61,112 +71,52 @@ void main() {
     expect(find.text('SC'), findsNothing);
   });
 
-  testWidgets('CabecalhoApp dispara callbacks recebidos por parâmetro', (
-    WidgetTester tester,
-  ) async {
-    var imprimir = 0;
-    var gerarPdf = 0;
-    var maisOpcoes = 0;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CabecalhoApp(
-            cabecalho: const CabecalhoEmpresa.systemCardRs(),
-            onImprimir: () => imprimir++,
-            onGerarPdf: () => gerarPdf++,
-            onMaisOpcoes: () => maisOpcoes++,
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('IMPRIMIR'));
-    await tester.tap(find.text('GERAR PDF'));
-    await tester.tap(find.byKey(const ValueKey('cabecalho-mais-opcoes-menu')));
-    await tester.pump();
-
-    expect(imprimir, 1);
-    expect(gerarPdf, 1);
-    expect(maisOpcoes, 1);
-  });
-
-  testWidgets('CabecalhoApp respeita ações desabilitadas e em andamento', (
-    WidgetTester tester,
-  ) async {
-    var imprimir = 0;
-    final cabecalho = const CabecalhoEmpresa.systemCardRs().copyWith(
-      acoesDisponiveis: const [
-        CabecalhoAcao(
-          id: CabecalhoAcaoId.imprimir,
-          rotulo: 'IMPRIMIR',
-          habilitada: false,
-        ),
-        CabecalhoAcao(
-          id: CabecalhoAcaoId.gerarPdf,
-          rotulo: 'GERAR PDF',
-          emAndamento: true,
-        ),
-        CabecalhoAcao(id: CabecalhoAcaoId.maisOpcoes, rotulo: 'MAIS OPÇÕES'),
-      ],
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CabecalhoApp(
-            cabecalho: cabecalho,
-            feedback: 'PDF preparado para integração futura.',
-            onImprimir: () => imprimir++,
-            onGerarPdf: () {},
-            onMaisOpcoes: () {},
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('IMPRIMIR'));
-    await tester.pump();
-
-    expect(imprimir, 0);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('PDF preparado para integração futura.'), findsOneWidget);
-  });
-
   testWidgets(
-    'CabecalhoApp abre menu de mais opções e retorna item escolhido',
+    'CabecalhoApp dispara callback de edição recebido por parâmetro',
     (WidgetTester tester) async {
-      CabecalhoMenuOpcao? opcaoSelecionada;
+      var edicoes = 0;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: CabecalhoApp(
               cabecalho: const CabecalhoEmpresa.systemCardRs(),
-              onImprimir: () {},
-              onGerarPdf: () {},
-              onMaisOpcoes: () {},
-              onSelecionarMaisOpcao: (opcao) => opcaoSelecionada = opcao,
+              onEditarCabecalho: () => edicoes++,
             ),
           ),
         ),
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('cabecalho-mais-opcoes-menu')),
-      );
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('Editar cabeçalho'));
 
-      expect(find.text('Salvar recibo'), findsOneWidget);
-      expect(find.text('Abrir histórico'), findsOneWidget);
-      expect(find.text('Novo recibo'), findsOneWidget);
-
-      await tester.tap(find.text('Novo recibo'));
-      await tester.pumpAndSettle();
-
-      expect(opcaoSelecionada, CabecalhoMenuOpcao.novoRecibo);
+      expect(edicoes, 1);
     },
   );
+
+  testWidgets('CabecalhoApp respeita edição desabilitada e feedback', (
+    WidgetTester tester,
+  ) async {
+    var edicoes = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CabecalhoApp(
+            cabecalho: const CabecalhoEmpresa.systemCardRs(),
+            feedback: 'Cabeçalho salvo.',
+            onEditarCabecalho: () => edicoes++,
+            editarCabecalhoHabilitado: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Editar cabeçalho'));
+    await tester.pump();
+
+    expect(edicoes, 0);
+    expect(find.text('Cabeçalho salvo.'), findsOneWidget);
+  });
 
   testWidgets('CabecalhoApp não gera overflow em larguras representativas', (
     WidgetTester tester,
@@ -197,6 +147,7 @@ void main() {
                 onGerarPdf: () {},
                 onMaisOpcoes: () {},
                 onSelecionarMaisOpcao: (_) {},
+                onEditarCabecalho: () {},
               ),
             ),
           ),
@@ -206,4 +157,10 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+}
+
+Finder _findFaIcon(FaIconData icon) {
+  return find.byWidgetPredicate(
+    (widget) => widget is FaIcon && widget.icon == icon.data,
+  );
 }

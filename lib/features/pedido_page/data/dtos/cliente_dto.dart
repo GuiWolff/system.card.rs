@@ -5,6 +5,7 @@ class ClienteDto {
     this.id,
     required this.nome,
     required this.telefone,
+    required this.email,
     required this.criadoEm,
     required this.atualizadoEm,
   });
@@ -18,6 +19,7 @@ class ClienteDto {
       id: cliente.id,
       nome: cliente.nome,
       telefone: Cliente.normalizarTelefone(cliente.telefone),
+      email: cliente.email,
       criadoEm: criadoEm,
       atualizadoEm: atualizadoEm,
     );
@@ -28,6 +30,7 @@ class ClienteDto {
       id: map['id'] as int?,
       nome: map['nome']! as String,
       telefone: map['telefone']! as String,
+      email: (map['email'] as String?) ?? '',
       criadoEm: DateTime.parse(map['criado_em']! as String),
       atualizadoEm: DateTime.parse(map['atualizado_em']! as String),
     );
@@ -36,11 +39,12 @@ class ClienteDto {
   final int? id;
   final String nome;
   final String telefone;
+  final String email;
   final DateTime criadoEm;
   final DateTime atualizadoEm;
 
   Cliente toDomain() {
-    return Cliente(id: id, nome: nome, telefone: telefone);
+    return Cliente(id: id, nome: nome, telefone: telefone, email: email);
   }
 
   Map<String, Object?> toMap({bool incluirId = false}) {
@@ -48,6 +52,7 @@ class ClienteDto {
       if (incluirId) 'id': id,
       'nome': nome,
       'telefone': telefone,
+      'email': email,
       'criado_em': criadoEm.toIso8601String(),
       'atualizado_em': atualizadoEm.toIso8601String(),
     };

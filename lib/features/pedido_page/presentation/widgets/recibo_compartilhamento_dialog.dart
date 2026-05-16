@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 enum ReciboCompartilhamentoOpcao { email, whatsapp, salvarArquivo }
 
@@ -15,7 +16,7 @@ class ReciboCompartilhamentoDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       title: Row(
         children: [
-          Icon(Icons.share_outlined, color: colorScheme.primary),
+          FaIcon(FontAwesomeIcons.shareNodes, color: colorScheme.primary),
           const SizedBox(width: 10),
           const Expanded(child: Text('Compartilhar recibo')),
         ],
@@ -29,19 +30,19 @@ class ReciboCompartilhamentoDialog extends StatelessWidget {
             _OpcaoCompartilhamento(
               key: ValueKey('recibo-compartilhar-email'),
               opcao: ReciboCompartilhamentoOpcao.email,
-              icon: Icons.email_outlined,
+              icon: FontAwesomeIcons.envelope,
               titulo: 'E-mail',
             ),
             _OpcaoCompartilhamento(
               key: ValueKey('recibo-compartilhar-whatsapp'),
               opcao: ReciboCompartilhamentoOpcao.whatsapp,
-              icon: Icons.chat_outlined,
+              icon: FontAwesomeIcons.whatsapp,
               titulo: 'WhatsApp',
             ),
             _OpcaoCompartilhamento(
               key: ValueKey('recibo-compartilhar-salvar-arquivo'),
               opcao: ReciboCompartilhamentoOpcao.salvarArquivo,
-              icon: Icons.save_alt_outlined,
+              icon: FontAwesomeIcons.fileArrowDown,
               titulo: 'Salvar arquivo',
             ),
           ],
@@ -66,7 +67,7 @@ class _OpcaoCompartilhamento extends StatelessWidget {
   });
 
   final ReciboCompartilhamentoOpcao opcao;
-  final IconData icon;
+  final FaIconData icon;
   final String titulo;
 
   @override
@@ -83,7 +84,7 @@ class _OpcaoCompartilhamento extends StatelessWidget {
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-          leading: Icon(icon, color: colorScheme.secondary),
+          leading: FaIcon(icon, color: colorScheme.secondary),
           title: Text(titulo),
           onTap: () => Navigator.of(context).pop(opcao),
         ),

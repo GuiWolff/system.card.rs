@@ -109,6 +109,7 @@ void main() {
           'id',
           'nome',
           'telefone',
+          'email',
           'criado_em',
           'atualizado_em',
         }),
@@ -133,6 +134,25 @@ void main() {
       expect(versao.single['user_version'], ReciboDatabase.version);
       expect(recibos.single['numero'], 'MIG-001');
       expect(clientes, isNotEmpty);
+    });
+
+    test('migra banco v2 para v3 adicionando e-mail em clientes', () async {
+      sqfliteFfiInit();
+      final caminho = await _criarBancoV2ComCliente();
+      reciboDatabase = ReciboDatabase.path(caminho);
+
+      final database = await reciboDatabase.open();
+
+      final versao = await database.rawQuery('PRAGMA user_version');
+      final colunasClientes = await database.rawQuery(
+        'PRAGMA table_info(clientes)',
+      );
+      final clientes = await database.query('clientes');
+
+      expect(versao.single['user_version'], ReciboDatabase.version);
+      expect(_nomesDasColunas(colunasClientes), contains('email'));
+      expect(clientes.single['nome'], 'Cliente v2');
+      expect(clientes.single['email'], '');
     });
 
     test('habilita chave estrangeira com exclusão em cascata', () async {
@@ -246,6 +266,78 @@ CREATE TABLE recibo_itens (
     'data_recebimento': agora,
     'data_entrega': agora,
     'valor_entrada_centavos': 0,
+    'criado_em': agora,
+    'atualizado_em': agora,
+  });
+  await database.close();
+
+  return caminho;
+}
+
+Future<String> _criarBancoV2ComCliente() async {
+  final diretorio = await Directory.systemTemp.createTemp('recibo_database_');
+  final caminho = '${diretorio.path}/recibos_v2.db';
+  final database = await databaseFactoryFfi.openDatabase(
+    caminho,
+    options: OpenDatabaseOptions(
+      version: 2,
+      onCreate: (database, version) async {
+        await database.execute('''
+CREATE TABLE recibos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  numero TEXT NOT NULL,
+  cliente_nome TEXT NOT NULL,
+  cliente_telefone TEXT NOT NULL DEFAULT '',
+  observacoes TEXT NOT NULL DEFAULT '',
+  data_recebimento TEXT,
+  data_entrega TEXT,
+  valor_entrada_centavos INTEGER NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+)
+''');
+
+        await database.execute('''
+CREATE TABLE recibo_itens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  recibo_id INTEGER NOT NULL,
+  ordem INTEGER NOT NULL,
+  quantidade INTEGER NOT NULL,
+  descricao TEXT NOT NULL,
+  valor_unitario_centavos INTEGER NOT NULL,
+  total_centavos INTEGER NOT NULL,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (recibo_id)
+    REFERENCES recibos (id)
+    ON DELETE CASCADE
+)
+''');
+
+        await database.execute('''
+CREATE TABLE clientes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL,
+  telefone TEXT NOT NULL,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+)
+''');
+
+        await database.execute(
+          'CREATE UNIQUE INDEX idx_clientes_telefone ON clientes (telefone)',
+        );
+        await database.execute(
+          'CREATE INDEX idx_clientes_nome ON clientes (nome)',
+        );
+      },
+    ),
+  );
+
+  final agora = DateTime(2026, 5, 15, 9).toIso8601String();
+  await database.insert('clientes', <String, Object?>{
+    'nome': 'Cliente v2',
+    'telefone': '51999990000',
     'criado_em': agora,
     'atualizado_em': agora,
   });

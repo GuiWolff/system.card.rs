@@ -34,6 +34,7 @@ class PedidoPageViewModel {
        _compartilhandoPdf = Rx<bool>(false),
        _erro = Rx<String?>(null),
        _reciboAtualSalvo = Rx<bool>(false),
+       _reciboSomenteLeitura = Rx<bool>(false),
        _ultimaAcaoRecibo = Rx<String?>(null),
        _ultimaAcaoCabecalho = Rx<String?>(null),
        _acaoCabecalhoEmAndamento = Rx<CabecalhoAcaoId?>(null),
@@ -46,6 +47,8 @@ class PedidoPageViewModel {
        _salvandoCliente = Rx<bool>(false),
        _erroClientes = Rx<String?>(null),
        _feedbackClientes = Rx<String?>(null),
+       _emailClienteSelecionado = Rx<String>(''),
+       _feedbackCompartilhamentoPdf = Rx<String?>(null),
        _termoBuscaClientes = Rx<String>('');
 
   final ReciboRepository? _reciboRepository;
@@ -61,6 +64,7 @@ class PedidoPageViewModel {
   final Rx<bool> _compartilhandoPdf;
   final Rx<String?> _erro;
   final Rx<bool> _reciboAtualSalvo;
+  final Rx<bool> _reciboSomenteLeitura;
   final Rx<String?> _ultimaAcaoRecibo;
   final Rx<String?> _ultimaAcaoCabecalho;
   final Rx<CabecalhoAcaoId?> _acaoCabecalhoEmAndamento;
@@ -73,6 +77,8 @@ class PedidoPageViewModel {
   final Rx<bool> _salvandoCliente;
   final Rx<String?> _erroClientes;
   final Rx<String?> _feedbackClientes;
+  final Rx<String> _emailClienteSelecionado;
+  final Rx<String?> _feedbackCompartilhamentoPdf;
   final Rx<String> _termoBuscaClientes;
 
   Recibo get reciboEmEdicao => _reciboEmEdicao.value;
@@ -94,6 +100,8 @@ class PedidoPageViewModel {
   String? get erro => _erro.value;
 
   bool get reciboAtualSalvo => _reciboAtualSalvo.value;
+
+  bool get reciboSomenteLeitura => _reciboSomenteLeitura.value;
 
   String? get ultimaAcaoRecibo => _ultimaAcaoRecibo.value;
 
@@ -147,6 +155,10 @@ class PedidoPageViewModel {
 
   String? get feedbackClientes => _feedbackClientes.value;
 
+  String get emailClienteSelecionado => _emailClienteSelecionado.value;
+
+  String? get feedbackCompartilhamentoPdf => _feedbackCompartilhamentoPdf.value;
+
   String get termoBuscaClientes => _termoBuscaClientes.value;
 
   CabecalhoEmpresa get cabecalhoEmpresa {
@@ -183,7 +195,9 @@ class PedidoPageViewModel {
 
   Future<void> iniciarNovoRecibo() async {
     _reciboEmEdicao.value = _criarReciboVazio();
+    _emailClienteSelecionado.value = '';
     _reciboAtualSalvo.value = false;
+    _reciboSomenteLeitura.value = false;
     _erro.value = null;
     await prepararProximoNumeroRecibo();
   }
@@ -216,32 +230,62 @@ class PedidoPageViewModel {
   }
 
   void atualizarNumero(String numero) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarRecibo(reciboEmEdicao.copyWith(numero: numero));
   }
 
   void atualizarCliente(String cliente) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
+    _emailClienteSelecionado.value = '';
     _atualizarRecibo(reciboEmEdicao.copyWith(cliente: cliente));
   }
 
   void atualizarTelefone(String telefone) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
+    _emailClienteSelecionado.value = '';
     _atualizarRecibo(
       reciboEmEdicao.copyWith(telefone: Cliente.normalizarTelefone(telefone)),
     );
   }
 
   void atualizarObservacoes(String observacoes) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarRecibo(reciboEmEdicao.copyWith(observacoes: observacoes));
   }
 
   void atualizarDataRecebimento(DateTime dataRecebimento) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarRecibo(reciboEmEdicao.copyWith(dataRecebimento: dataRecebimento));
   }
 
   void atualizarDataEntrega(DateTime dataEntrega) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarRecibo(reciboEmEdicao.copyWith(dataEntrega: dataEntrega));
   }
 
   void atualizarValorEntradaCentavos(int valor) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarRecibo(reciboEmEdicao.copyWith(valorEntradaCentavos: valor));
   }
 
@@ -253,6 +297,10 @@ class PedidoPageViewModel {
   }
 
   void adicionarItem(ItemRecibo item) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     final itensAtualizados = <ItemRecibo>[
       ...itens,
       item.copyWith(ordem: itens.length + 1),
@@ -260,7 +308,37 @@ class PedidoPageViewModel {
     _atualizarItens(itensAtualizados);
   }
 
+  bool solicitarNovoItem({int? indiceReferencia}) {
+    if (_bloquearSeSomenteLeitura()) {
+      return false;
+    }
+
+    final itensAtuais = itens;
+    if (itensAtuais.isNotEmpty) {
+      final indice = indiceReferencia ?? itensAtuais.length - 1;
+      if (indice < 0 || indice >= itensAtuais.length) {
+        _erro.value = 'Item de referência não encontrado.';
+        return false;
+      }
+
+      if (itensAtuais[indice].valorUnitarioCentavos <= 0) {
+        _erro.value =
+            'Informe um valor unitário maior que zero antes de adicionar outro item.';
+        return false;
+      }
+    }
+
+    adicionarItem(
+      const ItemRecibo(quantidade: 1, descricao: '', valorUnitarioCentavos: 0),
+    );
+    return true;
+  }
+
   void atualizarItem(int indice, ItemRecibo item) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     if (indice < 0 || indice >= itens.length) {
       _erro.value = 'Item não encontrado para atualização.';
       return;
@@ -272,6 +350,10 @@ class PedidoPageViewModel {
   }
 
   void removerItem(int indice) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     if (indice < 0 || indice >= itens.length) {
       _erro.value = 'Item não encontrado para remoção.';
       return;
@@ -282,6 +364,10 @@ class PedidoPageViewModel {
   }
 
   void limparItens() {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     _atualizarItens(const <ItemRecibo>[]);
   }
 
@@ -289,6 +375,10 @@ class PedidoPageViewModel {
     required int totalPedidoCentavos,
     required int valorEntradaCentavos,
   }) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     final reciboAtualizado = reciboEmEdicao.copyWith(
       itens: totalPedidoCentavos == 0
           ? const <ItemRecibo>[]
@@ -307,6 +397,10 @@ class PedidoPageViewModel {
   }
 
   Future<void> salvarRecibo() async {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
     if (reciboEmEdicao.id == null && reciboEmEdicao.numero.trim().isEmpty) {
       await prepararProximoNumeroRecibo();
       if (_erro.value != null && reciboEmEdicao.numero.trim().isEmpty) {
@@ -342,7 +436,9 @@ class PedidoPageViewModel {
       }
 
       _reciboEmEdicao.value = recibo;
+      _emailClienteSelecionado.value = '';
       _reciboAtualSalvo.value = true;
+      _reciboSomenteLeitura.value = true;
     });
   }
 
@@ -356,7 +452,9 @@ class PedidoPageViewModel {
       }
 
       _reciboEmEdicao.value = _duplicarSemIds(recibo);
+      _emailClienteSelecionado.value = '';
       _reciboAtualSalvo.value = false;
+      _reciboSomenteLeitura.value = false;
       _ultimaAcaoRecibo.value = 'recibo-duplicado';
       await prepararProximoNumeroRecibo();
     });
@@ -486,36 +584,42 @@ class PedidoPageViewModel {
 
   void prepararCompartilhamentoPdf() {
     _ultimaAcaoRecibo.value = 'compartilhamento-preparado';
+    _feedbackCompartilhamentoPdf.value = null;
     _erro.value = null;
   }
 
   void iniciarCompartilhamentoPdf() {
     _compartilhandoPdf.value = true;
     _ultimaAcaoRecibo.value = 'compartilhando-pdf';
+    _feedbackCompartilhamentoPdf.value = null;
     _erro.value = null;
   }
 
-  void concluirCompartilhamentoPdf() {
+  void concluirCompartilhamentoPdf({String? mensagem}) {
     _compartilhandoPdf.value = false;
     _ultimaAcaoRecibo.value = 'pdf-compartilhado';
+    _feedbackCompartilhamentoPdf.value = mensagem;
     _erro.value = null;
   }
 
   void concluirSalvamentoPdf() {
     _compartilhandoPdf.value = false;
     _ultimaAcaoRecibo.value = 'pdf-salvo';
+    _feedbackCompartilhamentoPdf.value = null;
     _erro.value = null;
   }
 
   void cancelarCompartilhamentoPdf() {
     _compartilhandoPdf.value = false;
     _ultimaAcaoRecibo.value = 'compartilhamento-cancelado';
+    _feedbackCompartilhamentoPdf.value = null;
     _erro.value = null;
   }
 
   void registrarErroCompartilhamentoPdf(String mensagem) {
     _compartilhandoPdf.value = false;
     _ultimaAcaoRecibo.value = null;
+    _feedbackCompartilhamentoPdf.value = null;
     _erro.value = mensagem;
   }
 
@@ -635,10 +739,11 @@ class PedidoPageViewModel {
   Future<void> salvarCliente({
     required String nome,
     required String telefone,
+    String email = '',
   }) async {
     await _executarComClienteRepository((repository) async {
       _salvandoCliente.value = true;
-      final cliente = Cliente(nome: nome, telefone: telefone);
+      final cliente = Cliente(nome: nome, telefone: telefone, email: email);
       final clienteSalvo = await repository.salvar(cliente);
       _feedbackClientes.value = 'Cliente salvo.';
       _selecionarClienteNoRecibo(clienteSalvo);
@@ -690,6 +795,7 @@ class PedidoPageViewModel {
     _compartilhandoPdf.dispose();
     _erro.dispose();
     _reciboAtualSalvo.dispose();
+    _reciboSomenteLeitura.dispose();
     _ultimaAcaoRecibo.dispose();
     _ultimaAcaoCabecalho.dispose();
     _acaoCabecalhoEmAndamento.dispose();
@@ -702,6 +808,8 @@ class PedidoPageViewModel {
     _salvandoCliente.dispose();
     _erroClientes.dispose();
     _feedbackClientes.dispose();
+    _emailClienteSelecionado.dispose();
+    _feedbackCompartilhamentoPdf.dispose();
     _termoBuscaClientes.dispose();
   }
 
@@ -809,12 +917,27 @@ class PedidoPageViewModel {
   }
 
   void _selecionarClienteNoRecibo(Cliente cliente) {
+    if (_bloquearSeSomenteLeitura()) {
+      return;
+    }
+
+    _emailClienteSelecionado.value = cliente.email;
     _atualizarRecibo(
       reciboEmEdicao.copyWith(
         cliente: cliente.nome,
         telefone: cliente.telefone,
       ),
     );
+  }
+
+  bool _bloquearSeSomenteLeitura() {
+    if (!_reciboSomenteLeitura.value) {
+      return false;
+    }
+
+    _erro.value =
+        'Recibo carregado do histórico está em modo somente leitura. Use Duplicar para editar uma cópia.';
+    return true;
   }
 
   static String _mensagemErroCliente(Object erro) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart';
 
@@ -14,6 +15,7 @@ class ReciboFormulario extends StatelessWidget {
     required this.onTelefoneChanged,
     required this.onValorEntradaChanged,
     required this.onObservacoesChanged,
+    this.somenteLeitura = false,
     super.key,
   });
 
@@ -26,6 +28,7 @@ class ReciboFormulario extends StatelessWidget {
   final ValueChanged<String> onTelefoneChanged;
   final ValueChanged<int> onValorEntradaChanged;
   final ValueChanged<String> onObservacoesChanged;
+  final bool somenteLeitura;
 
   @override
   Widget build(BuildContext context) {
@@ -60,22 +63,26 @@ class ReciboFormulario extends StatelessWidget {
               runSpacing: 12,
               children: [
                 _CampoFormulario(
+                  chave: 'recibo-formulario-numero',
                   largura: larguraCampo,
                   label: 'Número do recibo',
                   valorInicial: recibo.numero,
                   helperText: 'Gerado automaticamente pelo sistema',
                   readOnly: true,
-                  prefixIcon: Icons.confirmation_number_outlined,
+                  somenteLeitura: somenteLeitura,
+                  prefixIcon: FontAwesomeIcons.hashtag,
                   onChanged: onNumeroChanged,
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-recebido',
                   largura: larguraCampo,
                   label: 'Recebido',
                   valorInicial: _formatarData(recibo.dataRecebimento),
                   hintText: 'dd/mm/aaaa',
-                  prefixIcon: Icons.calendar_today_outlined,
+                  prefixIcon: FontAwesomeIcons.calendarDays,
                   keyboardType: TextInputType.datetime,
+                  somenteLeitura: somenteLeitura,
                   onChanged: (valor) {
                     final data = _converterData(valor);
                     if (data != null) {
@@ -85,12 +92,14 @@ class ReciboFormulario extends StatelessWidget {
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-entrega',
                   largura: larguraCampo,
                   label: 'Entrega',
                   valorInicial: _formatarData(recibo.dataEntrega),
                   hintText: 'dd/mm/aaaa',
-                  prefixIcon: Icons.event_available_outlined,
+                  prefixIcon: FontAwesomeIcons.calendarCheck,
                   keyboardType: TextInputType.datetime,
+                  somenteLeitura: somenteLeitura,
                   onChanged: (valor) {
                     final data = _converterData(valor);
                     if (data != null) {
@@ -100,46 +109,54 @@ class ReciboFormulario extends StatelessWidget {
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-cliente',
                   largura: larguraCampo,
                   label: 'Cliente',
                   valorInicial: recibo.cliente,
-                  prefixIcon: Icons.person_outline,
+                  prefixIcon: FontAwesomeIcons.user,
+                  somenteLeitura: somenteLeitura,
                   onChanged: onClienteChanged,
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-telefone',
                   largura: larguraCampo,
                   label: 'Telefone',
                   valorInicial: TelefoneInputFormatter.formatar(
                     recibo.telefone,
                   ),
-                  prefixIcon: Icons.phone_outlined,
+                  prefixIcon: FontAwesomeIcons.phone,
                   keyboardType: TextInputType.phone,
                   inputFormatters: const [TelefoneInputFormatter()],
+                  somenteLeitura: somenteLeitura,
                   onChanged: onTelefoneChanged,
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-valor-entrada',
                   largura: larguraCampo,
                   label: 'Valor de entrada',
                   valorInicial: valorEntradaFormatado.replaceFirst('R\$ ', ''),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  prefixIcon: Icons.payments_outlined,
+                  prefixIcon: FontAwesomeIcons.moneyBill,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
                   ],
+                  somenteLeitura: somenteLeitura,
                   onChanged: (valor) =>
                       onValorEntradaChanged(_converterMoeda(valor)),
                   textInputAction: TextInputAction.next,
                 ),
                 _CampoFormulario(
+                  chave: 'recibo-formulario-observacoes',
                   largura: largura,
                   label: 'Observações',
                   valorInicial: recibo.observacoes,
                   maxLines: 3,
-                  prefixIcon: Icons.notes_outlined,
+                  prefixIcon: FontAwesomeIcons.noteSticky,
+                  somenteLeitura: somenteLeitura,
                   onChanged: onObservacoesChanged,
                   textInputAction: TextInputAction.newline,
                 ),
@@ -198,8 +215,9 @@ class ReciboFormulario extends StatelessWidget {
   }
 }
 
-class _CampoFormulario extends StatelessWidget {
+class _CampoFormulario extends StatefulWidget {
   const _CampoFormulario({
+    required this.chave,
     required this.largura,
     required this.label,
     required this.valorInicial,
@@ -211,9 +229,11 @@ class _CampoFormulario extends StatelessWidget {
     this.textInputAction,
     this.helperText,
     this.readOnly = false,
+    this.somenteLeitura = false,
     this.prefixIcon,
   });
 
+  final String chave;
   final double largura;
   final String label;
   final String valorInicial;
@@ -225,28 +245,74 @@ class _CampoFormulario extends StatelessWidget {
   final TextInputAction? textInputAction;
   final String? helperText;
   final bool readOnly;
-  final IconData? prefixIcon;
+  final bool somenteLeitura;
+  final FaIconData? prefixIcon;
+
+  @override
+  State<_CampoFormulario> createState() => _CampoFormularioState();
+}
+
+class _CampoFormularioState extends State<_CampoFormulario> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.valorInicial);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CampoFormulario oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.valorInicial != oldWidget.valorInicial && !_focusNode.hasFocus) {
+      _sincronizarTexto(widget.valorInicial);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: largura,
+      width: widget.largura,
       child: TextFormField(
-        key: ValueKey('$label-$valorInicial'),
-        initialValue: valorInicial,
+        key: ValueKey(widget.chave),
+        controller: _controller,
+        focusNode: _focusNode,
         decoration: InputDecoration(
-          labelText: label,
-          hintText: hintText,
-          helperText: helperText,
-          prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+          labelText: widget.label,
+          hintText: widget.hintText,
+          helperText: widget.helperText,
+          prefixIcon: widget.prefixIcon == null
+              ? null
+              : FaIcon(widget.prefixIcon),
         ),
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        maxLines: maxLines,
-        textInputAction: textInputAction,
-        readOnly: readOnly,
-        onChanged: onChanged,
+        keyboardType: widget.keyboardType,
+        inputFormatters: widget.inputFormatters,
+        maxLines: widget.maxLines,
+        textInputAction: widget.textInputAction,
+        readOnly: widget.readOnly || widget.somenteLeitura,
+        enabled: !widget.somenteLeitura,
+        onChanged: widget.somenteLeitura ? null : widget.onChanged,
       ),
+    );
+  }
+
+  void _sincronizarTexto(String texto) {
+    if (_controller.text == texto) {
+      return;
+    }
+
+    _controller.value = TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
     );
   }
 }

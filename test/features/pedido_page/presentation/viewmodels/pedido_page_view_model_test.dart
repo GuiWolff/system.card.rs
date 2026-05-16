@@ -249,6 +249,37 @@ void main() {
     expect(viewModel.totalPedidoCentavos, 0);
   });
 
+  test('PedidoPageViewModel solicita novo item respeitando valor unitário', () {
+    final viewModel = PedidoPageViewModel();
+    addTearDown(viewModel.dispose);
+
+    final primeiroCriado = viewModel.solicitarNovoItem();
+
+    expect(primeiroCriado, isTrue);
+    expect(viewModel.itens, hasLength(1));
+    expect(viewModel.itens.single.valorUnitarioCentavos, 0);
+
+    final bloqueadoComZero = viewModel.solicitarNovoItem();
+
+    expect(bloqueadoComZero, isFalse);
+    expect(viewModel.itens, hasLength(1));
+    expect(
+      viewModel.erro,
+      'Informe um valor unitário maior que zero antes de adicionar outro item.',
+    );
+
+    viewModel.atualizarItem(
+      0,
+      viewModel.itens.single.copyWith(valorUnitarioCentavos: 1200),
+    );
+
+    final segundoCriado = viewModel.solicitarNovoItem();
+
+    expect(segundoCriado, isTrue);
+    expect(viewModel.itens, hasLength(2));
+    expect(viewModel.erro, isNull);
+  });
+
   test('PedidoPageViewModel prepara próximo número para recibo novo', () async {
     final repository = _ReciboRepositoryFake();
     await repository.salvar(_recibo(numero: '0009'));
@@ -351,6 +382,52 @@ void main() {
   );
 
   test(
+    'PedidoPageViewModel bloqueia mutações em recibo carregado do histórico',
+    () async {
+      final repository = _ReciboRepositoryFake();
+      final salvo = await repository.salvar(_recibo(numero: '0400'));
+      final viewModel = PedidoPageViewModel(reciboRepository: repository);
+      addTearDown(viewModel.dispose);
+
+      await viewModel.carregarRecibo(salvo.id!);
+
+      expect(viewModel.reciboSomenteLeitura, isTrue);
+      expect(viewModel.reciboEmEdicao.cliente, 'Cliente Teste');
+
+      viewModel.atualizarCliente('Cliente Editado');
+      viewModel.atualizarValorEntradaCentavos(2500);
+      viewModel.atualizarItem(
+        0,
+        viewModel.itens.single.copyWith(valorUnitarioCentavos: 5000),
+      );
+      viewModel.removerItem(0);
+      final novoItemCriado = viewModel.solicitarNovoItem();
+      await viewModel.salvarRecibo();
+
+      expect(novoItemCriado, isFalse);
+      expect(viewModel.reciboEmEdicao.cliente, 'Cliente Teste');
+      expect(viewModel.valorEntradaCentavos, 500);
+      expect(viewModel.itens, hasLength(1));
+      expect(viewModel.itens.single.valorUnitarioCentavos, 1500);
+      expect(repository.salvos.single.cliente, 'Cliente Teste');
+      expect(
+        viewModel.erro,
+        'Recibo carregado do histórico está em modo somente leitura. Use Duplicar para editar uma cópia.',
+      );
+
+      await viewModel.duplicarRecibo(salvo.id!);
+
+      expect(viewModel.reciboSomenteLeitura, isFalse);
+      viewModel.atualizarCliente('Cópia Editável');
+      expect(viewModel.reciboEmEdicao.cliente, 'Cópia Editável');
+
+      await viewModel.iniciarNovoRecibo();
+
+      expect(viewModel.reciboSomenteLeitura, isFalse);
+    },
+  );
+
+  test(
     'PedidoPageViewModel lista, pesquisa, salva e seleciona clientes',
     () async {
       final repository = _ClienteRepositoryFake();
@@ -380,11 +457,17 @@ void main() {
       await viewModel.salvarCliente(
         nome: 'Carla Souza',
         telefone: '(51) 9 3333-3333',
+        email: 'carla@exemplo.com',
       );
 
       expect(viewModel.feedbackClientes, 'Cliente salvo.');
       expect(viewModel.reciboEmEdicao.cliente, 'Carla Souza');
       expect(viewModel.reciboEmEdicao.telefone, '51933333333');
+      expect(repository.salvos.last.email, 'carla@exemplo.com');
+
+      await viewModel.pesquisarClientes('carla@exemplo.com');
+
+      expect(viewModel.clientes.single.nome, 'Carla Souza');
 
       viewModel.selecionarCliente(repository.salvos.first);
 
@@ -773,7 +856,9 @@ class _ClienteRepositoryFake implements ClienteRepository {
         .where(
           (cliente) =>
               cliente.nome.toLowerCase().contains(termoNome) ||
-              cliente.telefone.contains(termoTelefone),
+              cliente.email.toLowerCase().contains(termoNome) ||
+              (termoTelefone.isNotEmpty &&
+                  cliente.telefone.contains(termoTelefone)),
         )
         .toList(growable: false);
   }

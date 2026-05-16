@@ -49,12 +49,14 @@ class ReciboCompartilhamentoService {
   Future<ReciboCompartilhamentoResultado> compartilharPorEmail({
     required Uint8List pdfBytes,
     required String nomeArquivo,
+    String? destinatarioEmail,
     Rect? origemCompartilhamento,
   }) {
     return _compartilhar(
       canal: ReciboCompartilhamentoCanal.email,
       pdfBytes: pdfBytes,
       nomeArquivo: nomeArquivo,
+      destinatarioEmail: destinatarioEmail,
       origemCompartilhamento: origemCompartilhamento,
     );
   }
@@ -110,24 +112,17 @@ class ReciboCompartilhamentoService {
     required ReciboCompartilhamentoCanal canal,
     required Uint8List pdfBytes,
     required String nomeArquivo,
+    String? destinatarioEmail,
     Rect? origemCompartilhamento,
   }) async {
+    final emailNormalizado = destinatarioEmail?.trim();
     final resultado = await compartilharPdf(
-      ShareParams(
-        title: _titulo(canal),
-        subject: 'Recibo em PDF',
-        text: _texto(canal),
-        files: [
-          XFile.fromData(
-            pdfBytes,
-            name: nomeArquivo,
-            mimeType: 'application/pdf',
-          ),
-        ],
-        fileNameOverrides: [nomeArquivo],
-        sharePositionOrigin: origemCompartilhamento,
-        downloadFallbackEnabled: true,
-        mailToFallbackEnabled: true,
+      _criarParametrosCompartilhamento(
+        canal: canal,
+        pdfBytes: pdfBytes,
+        nomeArquivo: nomeArquivo,
+        emailNormalizado: emailNormalizado,
+        origemCompartilhamento: origemCompartilhamento,
       ),
     );
 
@@ -138,11 +133,11 @@ class ReciboCompartilhamentoService {
       ),
       ShareResultStatus.success => ReciboCompartilhamentoResultado(
         status: ReciboCompartilhamentoStatus.concluido,
-        mensagem: _mensagemSucesso(canal),
+        mensagem: _mensagemSucesso(canal, emailNormalizado),
       ),
       ShareResultStatus.unavailable => ReciboCompartilhamentoResultado(
         status: ReciboCompartilhamentoStatus.concluido,
-        mensagem: _mensagemIndeterminada(canal),
+        mensagem: _mensagemIndeterminada(canal, emailNormalizado),
       ),
     };
   }
@@ -155,11 +150,47 @@ class ReciboCompartilhamentoService {
     };
   }
 
-  static String _texto(ReciboCompartilhamentoCanal canal) {
+  static ShareParams _criarParametrosCompartilhamento({
+    required ReciboCompartilhamentoCanal canal,
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+    required String? emailNormalizado,
+    required Rect? origemCompartilhamento,
+  }) {
+    final arquivoPdf = XFile.fromData(
+      pdfBytes,
+      name: nomeArquivo,
+      mimeType: 'application/pdf',
+    );
+
     return switch (canal) {
-      ReciboCompartilhamentoCanal.email => 'Segue o recibo em PDF.',
-      ReciboCompartilhamentoCanal.whatsapp => 'Recibo em PDF.',
+      ReciboCompartilhamentoCanal.email => ShareParams(
+        title: _titulo(canal),
+        subject: 'Recibo em PDF',
+        text: _textoEmail(emailNormalizado),
+        files: [arquivoPdf],
+        fileNameOverrides: [nomeArquivo],
+        sharePositionOrigin: origemCompartilhamento,
+        downloadFallbackEnabled: true,
+        mailToFallbackEnabled: true,
+      ),
+      ReciboCompartilhamentoCanal.whatsapp => ShareParams(
+        title: _titulo(canal),
+        files: [arquivoPdf],
+        fileNameOverrides: [nomeArquivo],
+        sharePositionOrigin: origemCompartilhamento,
+        downloadFallbackEnabled: true,
+        mailToFallbackEnabled: true,
+      ),
     };
+  }
+
+  static String _textoEmail(String? email) {
+    if (email == null || email.isEmpty) {
+      return 'Segue o recibo em PDF.';
+    }
+
+    return 'Destinatário sugerido: $email\n\nSegue o recibo em PDF.';
   }
 
   static String _mensagemCancelado(ReciboCompartilhamentoCanal canal) {
@@ -171,22 +202,35 @@ class ReciboCompartilhamentoService {
     };
   }
 
-  static String _mensagemSucesso(ReciboCompartilhamentoCanal canal) {
+  static String _mensagemSucesso(
+    ReciboCompartilhamentoCanal canal,
+    String? email,
+  ) {
     return switch (canal) {
-      ReciboCompartilhamentoCanal.email =>
-        'Recibo enviado para compartilhamento por e-mail.',
+      ReciboCompartilhamentoCanal.email => _mensagemEmailComFallback(email),
       ReciboCompartilhamentoCanal.whatsapp =>
         'Recibo enviado para compartilhamento por WhatsApp.',
     };
   }
 
-  static String _mensagemIndeterminada(ReciboCompartilhamentoCanal canal) {
+  static String _mensagemIndeterminada(
+    ReciboCompartilhamentoCanal canal,
+    String? email,
+  ) {
     return switch (canal) {
-      ReciboCompartilhamentoCanal.email =>
-        'Compartilhamento por e-mail aberto pela folha do sistema.',
+      ReciboCompartilhamentoCanal.email => _mensagemEmailComFallback(email),
       ReciboCompartilhamentoCanal.whatsapp =>
         'Compartilhamento por WhatsApp aberto pela folha do sistema.',
     };
+  }
+
+  static String _mensagemEmailComFallback(String? email) {
+    if (email == null || email.isEmpty) {
+      return 'Compartilhamento por e-mail aberto pela folha do sistema.';
+    }
+
+    return 'Compartilhamento por e-mail aberto pela folha do sistema. '
+        'Destinatário sugerido: $email.';
   }
 }
 
