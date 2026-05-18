@@ -190,12 +190,20 @@ class _PedidoPageState extends State<PedidoPage> {
       return;
     }
 
+    final nomeArquivo = _nomeArquivoRecibo();
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => ReciboPdfPreviewDialog(
         pdfBytes: pdfBytes,
-        nomeArquivo: _nomeArquivoRecibo(),
+        nomeArquivo: nomeArquivo,
         previewBuilder: widget.reciboPdfPreviewBuilder,
+        onCompartilharPdf: () => _compartilharPdfGerado(
+          pdfBytes: pdfBytes,
+          nomeArquivo: nomeArquivo,
+        ),
+        onSalvarArquivo: () =>
+            _salvarPdfGerado(pdfBytes: pdfBytes, nomeArquivo: nomeArquivo),
       ),
     );
   }
@@ -304,8 +312,8 @@ class _PedidoPageState extends State<PedidoPage> {
           nomeArquivo: nomeArquivo,
           destinatarioEmail: _viewModel.emailClienteSelecionado,
         ),
-      ReciboCompartilhamentoOpcao.whatsapp =>
-        widget.reciboCompartilhamentoService.compartilharPorWhatsapp(
+      ReciboCompartilhamentoOpcao.compartilhar =>
+        widget.reciboCompartilhamentoService.compartilharGenerico(
           pdfBytes: pdfBytes,
           nomeArquivo: nomeArquivo,
         ),
@@ -332,6 +340,60 @@ class _PedidoPageState extends State<PedidoPage> {
     }
 
     _viewModel.concluirCompartilhamentoPdf(mensagem: resultado.mensagem);
+  }
+
+  Future<void> _compartilharPdfGerado({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) async {
+    if (_viewModel.compartilhandoPdf) {
+      return;
+    }
+
+    _viewModel.iniciarCompartilhamentoPdf();
+
+    try {
+      final resultado = await widget.reciboCompartilhamentoService
+          .compartilharGenerico(pdfBytes: pdfBytes, nomeArquivo: nomeArquivo);
+
+      if (resultado.cancelado) {
+        _viewModel.cancelarCompartilhamentoPdf();
+        return;
+      }
+
+      _viewModel.concluirCompartilhamentoPdf(mensagem: resultado.mensagem);
+    } catch (erro) {
+      _viewModel.registrarErroCompartilhamentoPdf(
+        _mensagemErroCompartilhamento(erro),
+      );
+    }
+  }
+
+  Future<void> _salvarPdfGerado({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) async {
+    if (_viewModel.compartilhandoPdf) {
+      return;
+    }
+
+    _viewModel.iniciarCompartilhamentoPdf();
+
+    try {
+      final resultado = await widget.reciboCompartilhamentoService
+          .salvarArquivo(pdfBytes: pdfBytes, nomeArquivo: nomeArquivo);
+
+      if (resultado.cancelado) {
+        _viewModel.cancelarCompartilhamentoPdf();
+        return;
+      }
+
+      _viewModel.concluirSalvamentoPdf();
+    } catch (erro) {
+      _viewModel.registrarErroCompartilhamentoPdf(
+        _mensagemErroCompartilhamento(erro),
+      );
+    }
   }
 
   String _nomeArquivoRecibo() {

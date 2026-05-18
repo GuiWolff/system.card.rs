@@ -4,6 +4,11 @@
 - Sempre escrever em português (pt-BR)
 - Preservar acentuação (UTF-8)
 
+## Codex
+- Usar `.codex/` como endereço canônico para prompts, tarefas, análises, slices, resumos, regras e skills do Codex.
+- Antes de alterar código, consultar `.codex/rules/RULE.md` e a skill aplicável em `.codex/skills/`.
+- Não apontar novos prompts, tarefas ou referências de execução para estruturas legadas fora de `.codex/`.
+
 ## Alterações de código
 
 - Nunca reescreva arquivos inteiros sem necessidade

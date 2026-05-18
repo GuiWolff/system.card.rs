@@ -1372,3 +1372,85 @@
 - Teste de widget da `PedidoPage` cobre a seleção da opção `WhatsApp` no `ReciboCompartilhamentoDialog` com serviço fake, validando destino `whatsapp`, bytes do PDF gerado e nome `recibo-0042.pdf`.
 - Impacto em UI: não houve alteração visual neste slice; o impacto é comportamental e de cobertura de teste no fluxo de compartilhamento por WhatsApp.
 - O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Revisão planejada de funcionalidade - 2026-05-18 - Compartilhamento genérico do PDF do recibo
+- Esta revisão substitui o comportamento registrado em 2026-05-15 para a opção específica `WhatsApp` no popup de compartilhamento do recibo.
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A ação impactada é o popup aberto pelo botão principal `Compartilhar` do `ReciboPedido`.
+- Estado atual observado no planejamento:
+  - o popup exibe `E-mail`, `WhatsApp` e `Salvar arquivo`;
+  - `ReciboCompartilhamentoOpcao` contém `email`, `whatsapp` e `salvarArquivo`;
+  - a seleção de `WhatsApp` chama `ReciboCompartilhamentoService.compartilharPorWhatsapp`;
+  - o usuário relata que, ao compartilhar por WhatsApp, somente o título chega ao destino e o PDF não é enviado.
+- Estado esperado após a tarefa:
+  - o popup deve exibir `E-mail`, `Compartilhar` e `Salvar arquivo`;
+  - a opção visível `WhatsApp` deve ser removida;
+  - a opção `Compartilhar` deve abrir a folha de compartilhamento do sistema com o PDF como arquivo principal;
+  - a opção `Compartilhar` deve cobrir WhatsApp e outros aplicativos escolhidos pelo usuário, sem prometer envio direto para um aplicativo específico;
+  - o payload do compartilhamento genérico deve priorizar `ShareParams.files` com `XFile.fromData`, MIME type `application/pdf` e nome previsível `recibo-[numero].pdf`;
+  - o compartilhamento genérico não deve depender de texto, assunto, rótulo ou deep link específico de WhatsApp.
+- Regras de interação preservadas:
+  - o recibo deve ser validado antes de gerar e compartilhar PDF;
+  - o PDF deve continuar sendo gerado por `ReciboPdfService.gerarPdfA4`;
+  - e-mail, salvar arquivo, imprimir e gerar PDF devem manter seus comportamentos atuais;
+  - `PedidoPageViewModel` não deve acessar `BuildContext`, widgets, `share_plus`, `file_picker` ou APIs de plataforma.
+- Validações esperadas:
+  - teste unitário de `ReciboCompartilhamentoService` garantindo compartilhamento genérico com arquivo PDF e sem texto/assunto de WhatsApp;
+  - teste de `PedidoPage` garantindo que `WhatsApp` não aparece, `Compartilhar` aparece e o PDF é enviado ao serviço fake;
+  - testes existentes de `ReciboPedido` relacionados ao botão `Compartilhar`;
+  - `flutter analyze`.
+- Impacto em UI: sim, por mudança das opções visíveis do `ReciboCompartilhamentoDialog`.
+- A implementação deve atualizar este contrato novamente com o resultado real aplicado.
+
+## Atualização de funcionalidade - 2026-05-18 - Compartilhamento genérico do PDF do recibo
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O popup aberto pelo botão principal `Compartilhar` do `ReciboPedido` passou a exibir as opções:
+  - `E-mail`;
+  - `Compartilhar`;
+  - `Salvar arquivo`.
+- A opção visível `WhatsApp` foi removida desse popup; WhatsApp passa a ser apenas um possível destino escolhido pelo usuário na folha de compartilhamento do sistema.
+- `ReciboCompartilhamentoOpcao` passou a usar `compartilhar` para a ação genérica, preservando `email` e `salvarArquivo`.
+- A opção `Compartilhar` chama `ReciboCompartilhamentoService.compartilharGenerico`.
+- O compartilhamento genérico monta `ShareParams` priorizando `files` com `XFile.fromData`, MIME type `application/pdf` e `fileNameOverrides` com o nome `recibo-[numero].pdf`.
+- O payload genérico envia `title: Compartilhar recibo` como metadado obrigatório para a folha de compartilhamento do Windows Desktop.
+- O payload genérico não envia `text` nem `subject`, evitando que WhatsApp receba apenas uma mensagem textual sem o PDF.
+- O método legado `compartilharPorWhatsapp` permanece no serviço como delegação para o compartilhamento genérico, sem ser usado pela `PedidoPage` neste fluxo.
+- O PDF continua sendo gerado por `ReciboPdfService.gerarPdfA4` somente depois da seleção de uma opção válida no popup.
+- Os fluxos de `E-mail`, `Salvar arquivo`, `Gerar PDF` e `Imprimir` foram preservados.
+- O nome do arquivo compartilhado continua seguindo o padrão `recibo-[numero].pdf`, usando o número do recibo atual sanitizado; para o recibo `0042`, o nome esperado é `recibo-0042.pdf`.
+- O feedback da opção genérica informa apenas que o recibo foi enviado para compartilhamento ou que a folha do sistema foi aberta, sem prometer envio direto por aplicativo específico.
+- `PedidoPageViewModel` permanece sem acesso a `BuildContext`, widgets, `share_plus`, `file_picker` ou APIs de plataforma.
+- Testes de serviço cobrem o compartilhamento genérico com bytes reais, MIME type `application/pdf`, nome previsível, título para Windows Desktop e ausência de `text` e `subject`.
+- Testes da `PedidoPage` cobrem que o popup não contém a opção `WhatsApp`, contém a opção `Compartilhar` e envia os bytes do PDF ao serviço fake pelo canal genérico.
+- Impacto em UI: sim, por alteração das opções visíveis do `ReciboCompartilhamentoDialog`.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Ajuste de funcionalidade - 2026-05-18 - E-mail sem texto no compartilhamento
+- O payload de `ReciboCompartilhamentoService.compartilharPorEmail` continua anexando o PDF por `ShareParams.files`, com MIME type `application/pdf` e nome previsível.
+- O compartilhamento por e-mail mantém `subject: Recibo em PDF`, mas não envia mais `text` com `Segue o recibo em PDF.`.
+- A remoção do corpo de texto evita que, ao escolher WhatsApp na folha de compartilhamento do sistema, o destino receba apenas uma mensagem textual sem o anexo.
+- O feedback visual da `PedidoPage` para e-mail foi preservado, incluindo destinatário sugerido quando existir cliente com e-mail.
+- A opção genérica `Compartilhar` permanece como caminho recomendado para WhatsApp e outros aplicativos.
+- Não houve alteração visual neste ajuste; o impacto é no payload enviado ao `share_plus`.
+- Teste de serviço cobre que o e-mail preserva PDF, nome e MIME type, sem enviar `text`.
+
+## Ajuste de funcionalidade - 2026-05-18 - Compartilhamento no Windows Desktop
+- O compartilhamento genérico de PDF passou a enviar `title: Compartilhar recibo` no `ShareParams`.
+- Esse título é metadado exigido pela implementação Windows do `share_plus` para a folha nativa de compartilhamento.
+- O ajuste mantém o PDF como arquivo principal em `ShareParams.files`, com MIME type `application/pdf` e `fileNameOverrides`.
+- O ajuste não reintroduz `text` nem `subject` no canal genérico, para evitar que WhatsApp Desktop receba apenas uma mensagem de texto.
+- O comportamento esperado no Windows Desktop é abrir a folha nativa com o PDF anexado para destinos que suportem recebimento de arquivos.
+
+## Ajuste de funcionalidade - 2026-05-18 - PDF compartilhável em arquivo temporário real
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- `ReciboCompartilhamentoService` passou a criar o `XFile` do PDF por helper injetável antes de montar o `ShareParams`.
+- Em plataformas IO, o helper grava os bytes do PDF em um arquivo temporário real dentro de `recibos_compartilhados` e compartilha por `XFile(path)`.
+- Na Web, o helper preserva o fallback com `XFile.fromData`, mantendo compatibilidade com a Web Share API e o mecanismo de download do `share_plus`.
+- O canal genérico continua enviando o PDF como arquivo principal em `ShareParams.files`, com MIME type `application/pdf`, `fileNameOverrides` com `recibo-[numero].pdf` e `title: Compartilhar recibo`.
+- O canal genérico continua sem `text` e sem `subject`.
+- O compartilhamento por e-mail também reutiliza o helper de PDF compartilhável, preservando `subject: Recibo em PDF`, ausência de `text`, MIME type e nome previsível.
+- `compartilharPorWhatsapp` permanece como método legado delegado para `compartilharGenerico`, sem deep link específico de WhatsApp.
+- `PedidoPageViewModel` permanece sem acesso a `BuildContext`, widgets, `share_plus`, `file_picker`, `dart:io`, `path_provider` ou APIs de plataforma.
+- Os fluxos de `Compartilhar`, `E-mail`, `Salvar arquivo`, `Gerar PDF`, prévia de PDF e impressão foram preservados.
+- Não houve alteração visual neste ajuste; o impacto é comportamental no payload entregue ao `share_plus`.
+- Teste de serviço cobre que o canal genérico aceita um `XFile` baseado em arquivo real e preserva ausência de `text`/`subject`, MIME type, bytes e nome previsível.

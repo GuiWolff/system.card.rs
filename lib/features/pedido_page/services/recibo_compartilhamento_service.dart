@@ -3,10 +3,11 @@ import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:system_card_rs/features/pedido_page/services/recibo_pdf_compartilhavel.dart';
 
 enum ReciboCompartilhamentoStatus { concluido, cancelado }
 
-enum ReciboCompartilhamentoCanal { email, whatsapp }
+enum ReciboCompartilhamentoCanal { email, generico }
 
 class ReciboCompartilhamentoResultado {
   const ReciboCompartilhamentoResultado({
@@ -25,6 +26,12 @@ class ReciboCompartilhamentoResultado {
 typedef ReciboCompartilharPdf =
     Future<ShareResult> Function(ShareParams params);
 
+typedef ReciboCriarPdfCompartilhavel =
+    Future<XFile> Function({
+      required Uint8List pdfBytes,
+      required String nomeArquivo,
+    });
+
 typedef ReciboSalvarPdf =
     Future<String?> Function({
       required String dialogTitle,
@@ -38,11 +45,13 @@ typedef ReciboSalvarPdf =
 class ReciboCompartilhamentoService {
   const ReciboCompartilhamentoService({
     this.compartilharPdf = _compartilharPdfPadrao,
+    this.criarPdfCompartilhavel = criarReciboPdfCompartilhavel,
     this.salvarPdf = _salvarPdfPadrao,
     this.isWeb = kIsWeb,
   });
 
   final ReciboCompartilharPdf compartilharPdf;
+  final ReciboCriarPdfCompartilhavel criarPdfCompartilhavel;
   final ReciboSalvarPdf salvarPdf;
   final bool isWeb;
 
@@ -61,13 +70,25 @@ class ReciboCompartilhamentoService {
     );
   }
 
-  Future<ReciboCompartilhamentoResultado> compartilharPorWhatsapp({
+  Future<ReciboCompartilhamentoResultado> compartilharGenerico({
     required Uint8List pdfBytes,
     required String nomeArquivo,
     Rect? origemCompartilhamento,
   }) {
     return _compartilhar(
-      canal: ReciboCompartilhamentoCanal.whatsapp,
+      canal: ReciboCompartilhamentoCanal.generico,
+      pdfBytes: pdfBytes,
+      nomeArquivo: nomeArquivo,
+      origemCompartilhamento: origemCompartilhamento,
+    );
+  }
+
+  Future<ReciboCompartilhamentoResultado> compartilharPorWhatsapp({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+    Rect? origemCompartilhamento,
+  }) {
+    return compartilharGenerico(
       pdfBytes: pdfBytes,
       nomeArquivo: nomeArquivo,
       origemCompartilhamento: origemCompartilhamento,
@@ -116,15 +137,13 @@ class ReciboCompartilhamentoService {
     Rect? origemCompartilhamento,
   }) async {
     final emailNormalizado = destinatarioEmail?.trim();
-    final resultado = await compartilharPdf(
-      _criarParametrosCompartilhamento(
-        canal: canal,
-        pdfBytes: pdfBytes,
-        nomeArquivo: nomeArquivo,
-        emailNormalizado: emailNormalizado,
-        origemCompartilhamento: origemCompartilhamento,
-      ),
+    final parametros = await _criarParametrosCompartilhamento(
+      canal: canal,
+      pdfBytes: pdfBytes,
+      nomeArquivo: nomeArquivo,
+      origemCompartilhamento: origemCompartilhamento,
     );
+    final resultado = await compartilharPdf(parametros);
 
     return switch (resultado.status) {
       ShareResultStatus.dismissed => ReciboCompartilhamentoResultado(
@@ -145,36 +164,32 @@ class ReciboCompartilhamentoService {
   static String _titulo(ReciboCompartilhamentoCanal canal) {
     return switch (canal) {
       ReciboCompartilhamentoCanal.email => 'Compartilhar recibo por e-mail',
-      ReciboCompartilhamentoCanal.whatsapp =>
-        'Compartilhar recibo por WhatsApp',
+      ReciboCompartilhamentoCanal.generico => 'Compartilhar recibo',
     };
   }
 
-  static ShareParams _criarParametrosCompartilhamento({
+  Future<ShareParams> _criarParametrosCompartilhamento({
     required ReciboCompartilhamentoCanal canal,
     required Uint8List pdfBytes,
     required String nomeArquivo,
-    required String? emailNormalizado,
     required Rect? origemCompartilhamento,
-  }) {
-    final arquivoPdf = XFile.fromData(
-      pdfBytes,
-      name: nomeArquivo,
-      mimeType: 'application/pdf',
+  }) async {
+    final arquivoPdf = await criarPdfCompartilhavel(
+      pdfBytes: pdfBytes,
+      nomeArquivo: nomeArquivo,
     );
 
     return switch (canal) {
       ReciboCompartilhamentoCanal.email => ShareParams(
         title: _titulo(canal),
         subject: 'Recibo em PDF',
-        text: _textoEmail(emailNormalizado),
         files: [arquivoPdf],
         fileNameOverrides: [nomeArquivo],
         sharePositionOrigin: origemCompartilhamento,
         downloadFallbackEnabled: true,
         mailToFallbackEnabled: true,
       ),
-      ReciboCompartilhamentoCanal.whatsapp => ShareParams(
+      ReciboCompartilhamentoCanal.generico => ShareParams(
         title: _titulo(canal),
         files: [arquivoPdf],
         fileNameOverrides: [nomeArquivo],
@@ -185,20 +200,11 @@ class ReciboCompartilhamentoService {
     };
   }
 
-  static String _textoEmail(String? email) {
-    if (email == null || email.isEmpty) {
-      return 'Segue o recibo em PDF.';
-    }
-
-    return 'Destinatário sugerido: $email\n\nSegue o recibo em PDF.';
-  }
-
   static String _mensagemCancelado(ReciboCompartilhamentoCanal canal) {
     return switch (canal) {
       ReciboCompartilhamentoCanal.email =>
         'Compartilhamento por e-mail cancelado.',
-      ReciboCompartilhamentoCanal.whatsapp =>
-        'Compartilhamento por WhatsApp cancelado.',
+      ReciboCompartilhamentoCanal.generico => 'Compartilhamento cancelado.',
     };
   }
 
@@ -208,8 +214,8 @@ class ReciboCompartilhamentoService {
   ) {
     return switch (canal) {
       ReciboCompartilhamentoCanal.email => _mensagemEmailComFallback(email),
-      ReciboCompartilhamentoCanal.whatsapp =>
-        'Recibo enviado para compartilhamento por WhatsApp.',
+      ReciboCompartilhamentoCanal.generico =>
+        'Recibo enviado para compartilhamento.',
     };
   }
 
@@ -219,8 +225,8 @@ class ReciboCompartilhamentoService {
   ) {
     return switch (canal) {
       ReciboCompartilhamentoCanal.email => _mensagemEmailComFallback(email),
-      ReciboCompartilhamentoCanal.whatsapp =>
-        'Compartilhamento por WhatsApp aberto pela folha do sistema.',
+      ReciboCompartilhamentoCanal.generico =>
+        'Compartilhamento aberto pela folha do sistema.',
     };
   }
 

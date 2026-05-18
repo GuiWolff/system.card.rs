@@ -1,0 +1,4 @@
+interface:
+  display_name: "Argo Flutter Dev"
+  short_description: "Guia local para alterações Flutter/Dart neste projeto."
+  default_prompt: "Use este skill para implementar ou revisar mudanças Flutter/Dart no projeto Argo Portal Shellbox."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gerenciador de Regras Argo"
+  short_description: "Gerencia regras persistentes e dinâmicas."
+  default_prompt: "Use $argo-rule-manager para adicionar ou revisar regras persistentes e dinâmicas do projeto."

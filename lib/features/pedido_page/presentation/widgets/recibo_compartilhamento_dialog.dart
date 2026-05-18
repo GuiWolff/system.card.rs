@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-enum ReciboCompartilhamentoOpcao { email, whatsapp, salvarArquivo }
+enum ReciboCompartilhamentoOpcao { email, compartilhar, salvarArquivo }
 
 class ReciboCompartilhamentoDialog extends StatelessWidget {
   const ReciboCompartilhamentoDialog({super.key});
@@ -34,10 +34,10 @@ class ReciboCompartilhamentoDialog extends StatelessWidget {
               titulo: 'E-mail',
             ),
             _OpcaoCompartilhamento(
-              key: ValueKey('recibo-compartilhar-whatsapp'),
-              opcao: ReciboCompartilhamentoOpcao.whatsapp,
-              icon: FontAwesomeIcons.whatsapp,
-              titulo: 'WhatsApp',
+              key: ValueKey('recibo-compartilhar-generico'),
+              opcao: ReciboCompartilhamentoOpcao.compartilhar,
+              icon: FontAwesomeIcons.shareNodes,
+              titulo: 'Compartilhar',
             ),
             _OpcaoCompartilhamento(
               key: ValueKey('recibo-compartilhar-salvar-arquivo'),

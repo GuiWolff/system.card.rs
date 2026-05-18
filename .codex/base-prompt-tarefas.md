@@ -7,26 +7,48 @@ O objetivo é transformar o pedido do usuário em arquivos de planejamento e exe
 
 - Não execute a implementação da tarefa.
 - Não altere arquivos reais do projeto, exceto arquivos de prompt, análise, resumo e contratos de tela necessários ao planejamento.
+- Não edite `AGENTS.md`, `.codex/rules/RULE.md`, `.codex/skills/**` ou referências de skills durante a geração; quando a tarefa solicitada envolver regras ou skills, gere o planejamento e indique o uso obrigatório de `.codex/skills/argo-rule-manager/SKILL.md`.
 - Não faça commit.
 - Preserve alterações existentes no worktree.
 - Não use operações destrutivas como `git reset --hard`, `git checkout --` ou limpeza de arquivos sem autorização explícita.
 
+## Fontes de regra e precedência
+
+Antes de gerar análise, prompt mestre, slice, resumo ou contrato de tela, carregue as fontes aplicáveis nesta ordem:
+
+1. `AGENTS.md`, como regra persistente carregada em toda sessão.
+2. `.codex/rules/RULE.md`, como regra geral obrigatória para geração de prompts, revisão, orientação de agentes e alterações de código.
+3. Skills e referências locais aplicáveis ao escopo:
+   - `.codex/skills/argo-flutter-dev/SKILL.md` para Dart/Flutter, UI, arquitetura, estado, testes, performance e validações Flutter.
+   - `.codex/skills/argo-flutter-dev/references/tema.md` para tema, cores, tipografia, superfícies visuais ou mensagens de erro.
+   - `.codex/skills/argo-rule-manager/SKILL.md` para criação, alteração ou revisão de regras, prompts persistentes, skills ou referências de skills.
+4. Este arquivo, apenas para o fluxo e formato dos artefatos de planejamento.
+5. Pedido do usuário, como objetivo da tarefa.
+
+Se houver conflito entre este arquivo e `AGENTS.md`, `.codex/rules/RULE.md` ou uma skill aplicável, prevalece a fonte mais específica já carregada. Se o conflito impedir a geração sem violar uma regra obrigatória, pare e registre o bloqueio em vez de inventar uma exceção.
+
+Os prompts gerados devem referenciar as fontes de regra e skills que precisam ser lidas na execução. Não copie regras extensas de Flutter, tema ou governança para dentro dos prompts quando elas já estiverem em skills ou referências locais.
+
 ## Entrada obrigatória
 
-A única interação permitida antes de iniciar é perguntar:
+A única interação com o usuário permitida antes de iniciar é perguntar:
 
 1. `[NOME_DA_PASTA]`
 2. Qual tarefa deseja realizar e em qual parte do projeto?
 
 Não faça nenhuma outra pergunta.
 
+Ler `AGENTS.md`, `.codex/rules/RULE.md` e skills aplicáveis não conta como interação com o usuário. Se o pedido inicial já trouxer `[NOME_DA_PASTA]` e a tarefa, não repita a pergunta.
+
 ## Local e nome dos arquivos
 
 Com base no `[NOME_DA_PASTA]`, defina o diretório de saída como:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]
+.codex/[NOME_DA_PASTA]
 ```
+
+Use `.codex/[NOME_DA_PASTA]` como local canônico para tarefas, análises, slices e resumos. Não crie novos artefatos fora de `.codex`.
 
 Defina o `[NOME_DO_SCRIPT]` usando a data atual no formato:
 
@@ -56,28 +78,29 @@ A análise deve identificar:
 - telas modificadas ou impactadas;
 - contratos de tela existentes que devem ser lidos antes da alteração;
 - contratos de tela que precisam ser criados, atualizados ou revisados;
+- regras e skills aplicáveis, com os caminhos que a execução deverá ler;
 - justificativa explícita quando não houver impacto em UI;
-- validações necessárias, incluindo testes específicos e `flutter analyze`;
+- validações necessárias conforme a skill aplicável, incluindo testes específicos e `flutter analyze` quando o escopo envolver `lib/`, `pubspec.yaml` ou `pubspec.lock`;
 - se a tarefa deve ou não ser dividida em slices.
 
 Salve a análise em:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md
 ```
 
 Depois da análise, gere sempre um prompt mestre:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT].md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT].md
 ```
 
 Se a análise indicar que a tarefa precisa ser fatiada, gere também os slices:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1.md
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2.md
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_3.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_3.md
 ```
 
 Crie quantas partes forem necessárias, mantendo cada slice pequeno, coeso e incremental.
@@ -85,7 +108,7 @@ Crie quantas partes forem necessárias, mantendo cada slice pequeno, coeso e inc
 Gere também o resumo geral da tarefa:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-resumo.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-resumo.md
 ```
 
 O resumo geral deve registrar:
@@ -96,6 +119,7 @@ O resumo geral deve registrar:
 - ordem correta de execução;
 - validações esperadas;
 - contratos de tela criados, atualizados ou revisados;
+- regras e skills aplicáveis registradas nos prompts;
 - observações importantes para continuidade.
 
 ## Contratos de tela
@@ -165,6 +189,7 @@ Quando houver slices, o prompt mestre deve conter:
 - contexto técnico da tarefa;
 - objetivo geral;
 - arquivos principais envolvidos;
+- regras e skills aplicáveis;
 - análise resumida;
 - contratos de tela relacionados;
 - lista completa dos slices;
@@ -179,6 +204,7 @@ Quando não houver slices, o prompt mestre deve conter:
 
 - contexto técnico;
 - arquivos envolvidos;
+- regras e skills aplicáveis;
 - contratos de tela relacionados, usando o padrão `[nome-da-tela]-contrato.md`, ou justificativa de ausência de impacto em UI;
 - regras;
 - restrições;
@@ -195,6 +221,7 @@ Cada slice deve:
 - ler o resumo do slice anterior, quando houver;
 - referenciar o arquivo de análise;
 - referenciar o prompt mestre;
+- referenciar regras e skills aplicáveis;
 - listar apenas os arquivos necessários para aquele slice;
 - listar contratos de tela relacionados, usando o padrão `[nome-da-tela]-contrato.md`;
 - preservar APIs públicas e comportamento existente, salvo quando a tarefa exigir explicitamente mudança;
@@ -206,7 +233,7 @@ Cada slice deve:
 Cada slice deve salvar seu resumo em:
 
 ```txt
-docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_N-resumo.md
+.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_N-resumo.md
 ```
 
 O resumo do slice deve conter:
@@ -224,36 +251,32 @@ O resumo do slice deve conter:
 
 - Usar português pt-BR.
 - Manter UTF-8.
-- Não reescrever arquivos inteiros sem necessidade.
-- Preservar padrões já existentes no projeto.
-- Não alterar APIs públicas sem necessidade.
-- Não remover código legado sem confirmação explícita.
-- Preferir mudanças pequenas e localizadas.
-- Evitar criar arquivos desnecessários.
-- Em Flutter, preferir estado reativo do projeto a `setState`, quando aplicável.
-- Controllers/ViewModels não devem acessar contexto da UI.
-- Widgets grandes devem ser quebrados quando a tarefa exigir alteração substancial.
-- Listas devem usar builder quando houver risco de crescimento.
-- Rodar `flutter analyze` antes de finalizar slices de código.
-- Rodar testes específicos relacionados à alteração.
-- Rodar `flutter test` no fechamento quando o impacto for amplo.
+- Antes de alterar código, a execução deve ler `AGENTS.md`, `.codex/rules/RULE.md` e as skills/referências aplicáveis registradas no prompt.
+- Não duplicar regras detalhadas de Dart/Flutter, tema ou governança já existentes em skills; referencie os caminhos das fontes de verdade.
+- Para Dart/Flutter, seguir `.codex/skills/argo-flutter-dev/SKILL.md`.
+- Para tema, cores, tipografia, superfícies visuais ou mensagens de erro, seguir `.codex/skills/argo-flutter-dev/references/tema.md`.
+- Para regras, prompts persistentes, skills ou referências de skills, seguir `.codex/skills/argo-rule-manager/SKILL.md`.
+- Rodar validações conforme a skill aplicável, incluindo testes específicos e `flutter analyze` quando a alteração envolver `lib/`, `pubspec.yaml` ou `pubspec.lock`.
+- Reportar claramente qualquer validação não executada ou bloqueada.
 - Não executar automaticamente o próximo slice.
 - Não manter múltiplos slices executando simultaneamente.
-- Não fazer commit.
+- Não fazer commit automaticamente.
 
 ## Ações finais deste gerador
 
 Após gerar ou atualizar os arquivos necessários:
 
-1. Adicione ao git apenas os arquivos de planejamento criados ou atualizados por este gerador:
+1. Verifique `git status --short` para diferenciar alterações pré-existentes das criadas pelo gerador.
+2. Adicione ao git apenas os arquivos de planejamento criados ou atualizados por este gerador, sem limpar staging pré-existente:
 
 ```txt
-git add docs/codex/[NOME_DA_PASTA]/...
+git add .codex/[NOME_DA_PASTA]/...
 ```
 
-2. Se contratos de tela forem criados, atualizados ou revisados, adicione também esses arquivos ao git.
-3. Não faça commit.
-4. Informe ao usuário:
+3. Se contratos de tela forem criados, atualizados ou revisados, adicione também esses arquivos ao git.
+4. Se não for possível diferenciar alterações do usuário e alterações do gerador com segurança, não altere o staging e informe o bloqueio.
+5. Não faça commit.
+6. Informe ao usuário:
    - prompt mestre criado;
    - slices criados, se houver;
    - análise criada;
@@ -269,6 +292,14 @@ Use este formato para `[NOME_DO_SCRIPT]-analise.md`:
 
 ## Pedido original
 - Descreva o pedido do usuário de forma objetiva.
+
+## Regras e skills aplicáveis
+- Liste as fontes lidas antes da análise.
+- Inclua `AGENTS.md` e `.codex/rules/RULE.md`.
+- Inclua `.codex/skills/argo-flutter-dev/SKILL.md` quando houver Dart/Flutter, UI, arquitetura, estado, testes, performance ou validações Flutter.
+- Inclua `.codex/skills/argo-flutter-dev/references/tema.md` quando houver tema, cores, tipografia, superfícies visuais ou mensagens de erro.
+- Inclua `.codex/skills/argo-rule-manager/SKILL.md` quando houver regras, prompts persistentes, skills ou referências de skills.
+- Quando uma skill não for aplicável, justifique de forma objetiva.
 
 ## Feature correspondente
 - Informe a feature e o caminho provável.
@@ -307,12 +338,18 @@ Use este formato quando a tarefa for fatiada:
 
 ```md
 # Contexto
-Você é um desenvolvedor Senior em Dart / Flutter.
+Você é um desenvolvedor sênior em Dart/Flutter.
 Leia a análise desta tarefa antes de executar qualquer alteração.
 Esta tarefa foi dividida em [TOTAL] slices.
 
 ## Análise da tarefa
-- `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+- `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+
+## Regras e skills aplicáveis
+- Leia `AGENTS.md`.
+- Leia `.codex/rules/RULE.md`.
+- Leia as skills e referências listadas na análise antes de alterar código.
+- Se houver conflito entre este prompt e uma regra ou skill aplicável, pare e reporte o bloqueio.
 
 ## Objetivo geral
 - Descreva o objetivo final da tarefa.
@@ -329,8 +366,8 @@ Esta tarefa foi dividida em [TOTAL] slices.
 ## Slices da tarefa
 
 ### Slice 1/[TOTAL] - [Nome curto]
-Arquivo: `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1.md`
-Resumo esperado: `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1-resumo.md`
+Arquivo: `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1.md`
+Resumo esperado: `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_1-resumo.md`
 
 Atividades:
 1. [Atividade objetiva]
@@ -340,8 +377,8 @@ Validações:
 - `[comando]`
 
 ### Slice 2/[TOTAL] - [Nome curto]
-Arquivo: `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2.md`
-Resumo esperado: `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2-resumo.md`
+Arquivo: `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2.md`
+Resumo esperado: `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_2-resumo.md`
 
 Atividades:
 1. [Atividade objetiva]
@@ -357,6 +394,8 @@ Validações:
 - Se um resumo de slice já existir e estiver válido, não repetir esse slice.
 - Cada slice deve considerar o estado atualizado do código produzido pelo slice anterior.
 - Cada slice que alterar UI deve criar ou atualizar o respectivo `[nome-da-tela]-contrato.md`.
+- Cada slice deve ler as regras e skills aplicáveis antes de alterar código.
+- Cada slice deve rodar validações conforme a skill aplicável.
 - Preservar alterações existentes no worktree.
 - Não fazer commit automaticamente.
 
@@ -370,11 +409,17 @@ Use este formato quando a tarefa não precisar ser fatiada:
 
 ```md
 # Contexto
-Você é um desenvolvedor Senior em Dart / Flutter.
+Você é um desenvolvedor sênior em Dart/Flutter.
 Leia a análise desta tarefa antes de executar qualquer alteração.
 
 ## Análise da tarefa
-- `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+- `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+
+## Regras e skills aplicáveis
+- Leia `AGENTS.md`.
+- Leia `.codex/rules/RULE.md`.
+- Leia as skills e referências listadas na análise antes de alterar código.
+- Se houver conflito entre este prompt e uma regra ou skill aplicável, pare e reporte o bloqueio.
 
 ## Arquivos
 - Liste arquivos envolvidos.
@@ -390,16 +435,16 @@ Leia a análise desta tarefa antes de executar qualquer alteração.
 
 ## Restrições
 - Não reescreva arquivos inteiros sem necessidade.
-- Não faça commit.
+- Não faça commit automaticamente.
 - Liste restrições específicas da tarefa.
 
 ## Entregáveis
 1. [Entregável objetivo]
 2. Criar ou atualizar `[nome-da-tela]-contrato.md` quando houver alteração em Page/View/Tela.
 3. Registrar no resumo final quais contratos de tela foram criados ou atualizados.
-4. Rodar `flutter analyze`, quando houver alteração em Dart/Flutter.
+4. Rodar validações conforme a skill aplicável, incluindo `flutter analyze` quando a alteração envolver `lib/`, `pubspec.yaml` ou `pubspec.lock`.
 5. Rodar testes específicos relacionados.
-6. Salvar resumo em `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-resumo.md`.
+6. Salvar resumo em `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-resumo.md`.
 
 # Descrição
 - Descreva a tarefa.
@@ -414,15 +459,21 @@ Use este formato para cada `[NOME_DO_SCRIPT]-parte_N.md`:
 
 ```md
 # Contexto
-Você é um desenvolvedor Senior em Dart / Flutter.
+Você é um desenvolvedor sênior em Dart/Flutter.
 Leia a análise da tarefa e o resumo do slice anterior, se houver.
-Este é o slice N/[TOTAL] derivado de `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT].md`.
+Este é o slice N/[TOTAL] derivado de `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT].md`.
 
 ## Análise da tarefa
-- `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+- `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-analise.md`
+
+## Regras e skills aplicáveis
+- Leia `AGENTS.md`.
+- Leia `.codex/rules/RULE.md`.
+- Leia as skills e referências listadas na análise antes de alterar código.
+- Se houver conflito entre este slice e uma regra ou skill aplicável, pare e reporte o bloqueio.
 
 ## Continuidade
-- Slice anterior: `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_[N-1]-resumo.md`
+- Slice anterior: `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_[N-1]-resumo.md`
 - Se este for o primeiro slice, informe que não há resumo anterior.
 
 ## Arquivos
@@ -441,7 +492,7 @@ Este é o slice N/[TOTAL] derivado de `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIP
 - Não reescreva arquivos inteiros sem necessidade.
 - Não misture etapas de outros slices.
 - Não execute automaticamente o próximo slice.
-- Não faça commit.
+- Não faça commit automaticamente.
 
 ## Entregáveis
 1. [Entregável objetivo]
@@ -449,8 +500,8 @@ Este é o slice N/[TOTAL] derivado de `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIP
 3. Criar ou atualizar `[nome-da-tela]-contrato.md` quando houver alteração em Page/View/Tela.
 4. Registrar no resumo do slice quais contratos de tela foram criados, atualizados ou revisados.
 5. Justificar explicitamente no resumo do slice quando não houver impacto em UI.
-6. Rodar validações específicas.
-7. Salvar resumo em `docs/codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_N-resumo.md`.
+6. Rodar validações específicas conforme a skill aplicável.
+7. Salvar resumo em `.codex/[NOME_DA_PASTA]/[NOME_DO_SCRIPT]-parte_N-resumo.md`.
 
 # Descrição
 - Descreva a etapa deste slice.

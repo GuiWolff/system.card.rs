@@ -7,12 +7,30 @@ Antes de iniciar qualquer execução, pergunte apenas:
 Qual tarefa principal deseja executar?
 
 A resposta esperada deve ser um arquivo em:
-`docs/codex/...`
+`.codex/...`
 
 Exemplo:
-`@file:docs/codex/carregador/carregador-26-05-11-7.md`
+`@file:.codex/carregador/carregador-26-05-11-7.md`
 
 Não faça nenhuma outra pergunta.
+
+Ler `AGENTS.md`, `.codex/rules/RULE.md` e skills aplicáveis não conta como interação com o usuário. Se o usuário já informou o arquivo principal da tarefa, não repita a pergunta.
+
+## Fontes de regra e limites de atuação
+
+Antes de iniciar a orquestração, leia:
+
+1. `AGENTS.md`;
+2. `.codex/rules/RULE.md`;
+3. as skills e referências indicadas no prompt principal, na análise da tarefa ou no slice atual.
+
+O orquestrador não é uma fonte paralela de regras técnicas. Ele coordena sessões e exige que cada sessão executora leia as regras e skills aplicáveis antes de alterar código.
+
+Use `.codex/...` como diretório canônico para prompts, análises, slices e resumos. Não crie nem procure novos artefatos fora de `.codex`; caminhos legados devem ser bloqueados até que o usuário informe o caminho canônico em `.codex`.
+
+Se este arquivo conflitar com `AGENTS.md`, `.codex/rules/RULE.md` ou uma skill aplicável, prevalece a fonte mais específica já carregada. Se o conflito impedir a execução segura, pare e reporte o bloqueio.
+
+Se o ambiente atual não permitir encerrar e abrir sessões independentes do Codex CLI, não simule isolamento de contexto. Pare e informe que a execução precisa ser feita em um ambiente com controle explícito de sessões.
 
 ## Objetivo
 Criar um agente orquestrador responsável por executar tarefas fatiadas em slices, sempre com contexto limpo entre uma parte e outra.
@@ -20,7 +38,7 @@ Criar um agente orquestrador responsável por executar tarefas fatiadas em slice
 A ideia é que o usuário informe um prompt principal, por exemplo:
 
 ```txt
-@file:docs/codex/carregador/carregador-26-05-11-7.md
+@file:.codex/carregador/carregador-26-05-11-7.md
 ```
 
 O orquestrador lê esse arquivo, identifica se a tarefa foi dividida em partes e executa cada slice em sequência:
@@ -41,6 +59,7 @@ O orquestrador não deve implementar diretamente a tarefa técnica. Ele coordena
 Responsabilidades:
 
 - ler o prompt principal informado pelo usuário;
+- validar que o prompt principal está em `.codex/...`;
 - identificar se existem slices derivados;
 - ordenar os slices por `parte_1`, `parte_2`, `parte_3` e assim por diante;
 - executar apenas um slice por vez;
@@ -88,6 +107,7 @@ O ponto mais importante é que o próximo slice deve ser executado em uma sessã
 - Sempre executar os slices em ordem crescente.
 - Sempre executar a partir da raiz do projeto.
 - Sempre preservar alterações existentes no worktree.
+- Sempre garantir que a sessão executora leia `AGENTS.md`, `.codex/rules/RULE.md` e as skills/referências aplicáveis antes de alterar código.
 - Nunca fazer `git reset --hard`, `git checkout --` ou operação destrutiva sem autorização explícita.
 
 ## Critério para avançar
@@ -100,6 +120,8 @@ O orquestrador só pode avançar para o próximo slice quando todos os critério
 - o resumo informa se houve impacto em UI;
 - se houve alteração em Page/View/Tela, o resumo informa qual `[nome-da-tela]-contrato.md` foi criado ou atualizado;
 - se não houve impacto em UI, o resumo justifica isso explicitamente;
+- o resumo informa quais regras e skills aplicáveis foram lidas ou justifica por que nenhuma skill adicional era necessária;
+- as validações exigidas pela skill aplicável foram executadas ou o bloqueio foi registrado;
 - o Codex CLI anterior foi encerrado;
 - a nova sessão foi aberta na raiz correta do projeto.
 
@@ -114,7 +136,7 @@ Você é um agente orquestrador de execução de slices para um projeto Flutter/
 Sua função não é implementar diretamente a tarefa, mas coordenar sessões independentes do Codex CLI.
 
 Entrada:
-- Um arquivo principal de tarefa em docs/codex.
+- Um arquivo principal de tarefa em `.codex/...`.
 
 Processo:
 1. Leia o arquivo principal.
@@ -139,10 +161,13 @@ Regras:
 - Nunca reverta alterações do usuário.
 - Nunca faça commit automaticamente.
 - Preserve o worktree e trabalhe sempre sobre o estado atualizado deixado pelo slice anterior.
+- Garanta que cada sessão executora leia `AGENTS.md`, `.codex/rules/RULE.md` e as skills/referências aplicáveis antes de alterar código.
+- Pare se o arquivo principal estiver fora de `.codex/...`.
 
 Ao final:
 - Informe quais slices foram executados.
 - Informe quais validações passaram.
+- Informe quais regras e skills aplicáveis foram usadas.
 - Informe qualquer bloqueio encontrado.
 ```
 
@@ -150,17 +175,17 @@ Ao final:
 Entrada do usuário:
 
 ```txt
-Rode @file:docs/codex/carregador/carregador-26-05-11-7.md
+Rode @file:.codex/carregador/carregador-26-05-11-7.md
 ```
 
 Arquivos detectados:
 
 ```txt
-docs/codex/carregador/carregador-26-05-11-7-parte_1.md
-docs/codex/carregador/carregador-26-05-11-7-parte_2.md
-docs/codex/carregador/carregador-26-05-11-7-parte_3.md
-docs/codex/carregador/carregador-26-05-11-7-parte_4.md
-docs/codex/carregador/carregador-26-05-11-7-parte_5.md
+.codex/carregador/carregador-26-05-11-7-parte_1.md
+.codex/carregador/carregador-26-05-11-7-parte_2.md
+.codex/carregador/carregador-26-05-11-7-parte_3.md
+.codex/carregador/carregador-26-05-11-7-parte_4.md
+.codex/carregador/carregador-26-05-11-7-parte_5.md
 ```
 
 Execução esperada:
@@ -189,6 +214,7 @@ Fechar a sessão anterior força o próximo slice a trabalhar com três fontes m
 - o código realmente salvo no disco;
 - o resumo produzido pelo slice anterior;
 - o prompt específico do próximo slice.
+- as regras e skills locais lidas pela nova sessão.
 
 Isso reduz o risco de o agente continuar decisões antigas que não ficaram registradas no código ou no resumo. Também torna a execução mais previsível, porque cada slice começa com contexto menor e mais objetivo.
 
@@ -198,11 +224,11 @@ Se um slice falhar, o orquestrador deve parar.
 Falhas que devem bloquear a continuidade:
 
 - resumo do slice não foi criado;
-- testes obrigatórios não passaram;
-- `flutter analyze` falhou;
+- validação obrigatória conforme a skill aplicável falhou, incluindo `flutter analyze` quando aplicável;
 - houve conflito ou erro de edição;
 - slice alterou Page/View/Tela e não criou ou atualizou o contrato correspondente;
 - resumo do slice não informou contratos de tela criados, atualizados, revisados ou justificativa de ausência de impacto em UI;
+- resumo do slice não informou regras e skills aplicáveis lidas;
 - o Codex CLI não encerrou corretamente;
 - o próximo slice esperado não existe;
 - o worktree ficou em estado ambíguo.
@@ -217,7 +243,7 @@ Nesses casos, o orquestrador deve reportar:
 ## Comportamento esperado com git
 O orquestrador não deve fazer commit.
 
-Ele pode permitir que cada slice execute `git add` quando isso estiver descrito no prompt do slice. Porém, ele não deve limpar staging, desfazer alterações ou reorganizar commits sem pedido explícito do usuário.
+Ele pode permitir que cada slice execute `git add` quando isso estiver descrito no prompt do slice. Porém, ele não deve limpar staging, desfazer alterações, reorganizar commits ou adicionar arquivos não relacionados sem pedido explícito do usuário.
 
 Antes de iniciar cada slice, é recomendável registrar mentalmente o estado do worktree para diferenciar:
 
@@ -233,6 +259,7 @@ Ao concluir todos os slices, o orquestrador deve entregar um resumo curto com:
 - arquivos principais alterados;
 - contratos de tela criados ou atualizados;
 - confirmação de que cada slice com alteração de UI atualizou seu `[nome-da-tela]-contrato.md`;
+- regras e skills aplicáveis lidas por cada slice, ou justificativa quando nenhuma skill adicional foi necessária;
 - bloqueios, se existirem;
 - indicação de que não houve execução paralela;
 - indicação de que cada slice foi executado em uma nova sessão.
