@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/pedido_page.dart';
 
 void main() {
@@ -45,10 +44,10 @@ void main() {
       ),
     );
 
-    expect(_findFaIcon(FontAwesomeIcons.magnifyingGlass), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.phone), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.envelope), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.userPlus), findsOneWidget);
+    expect(_findIcon(Icons.search), findsOneWidget);
+    expect(_findIcon(Icons.call_outlined), findsOneWidget);
+    expect(_findIcon(Icons.mail_outline), findsOneWidget);
+    expect(_findIcon(Icons.person_add_alt_1_outlined), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('clientes-painel-busca')),
@@ -122,8 +121,8 @@ void main() {
   });
 }
 
-Finder _findFaIcon(FaIconData icon) {
+Finder _findIcon(IconData icon) {
   return find.byWidgetPredicate(
-    (widget) => widget is FaIcon && widget.icon == icon.data,
+    (widget) => widget is Icon && widget.icon == icon,
   );
 }

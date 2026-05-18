@@ -85,7 +85,29 @@ class _PedidoPageState extends State<PedidoPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
-      appBar: AppBar(title: const Text('Pedido')),
+      appBar: AppBar(
+        title: Text(
+          'Pedido',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: colorScheme.outlineVariant,
+          ),
+        ),
+      ),
       body: PedidoPageLayout(
         cabecalho: Obx(
           () => CabecalhoApp(
@@ -465,32 +487,38 @@ class _PedidoPageSection extends StatelessWidget {
     return Semantics(
       container: true,
       label: titulo,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outlineVariant),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
                 children: [
-                  Container(
-                    width: 4,
-                    height: 22,
+                  DecoratedBox(
                     decoration: BoxDecoration(
                       color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(999),
                     ),
+                    child: const SizedBox(width: 4, height: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       titulo,
-                      style: textTheme.titleLarge?.copyWith(
+                      style: textTheme.titleMedium?.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w800,
                       ),
@@ -498,11 +526,11 @@ class _PedidoPageSection extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              child,
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }

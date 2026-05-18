@@ -86,7 +86,7 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       title: Row(
         children: [
-          FaIcon(FontAwesomeIcons.idBadge, color: colorScheme.primary),
+          Icon(Icons.badge_outlined, color: colorScheme.primary),
           const SizedBox(width: 10),
           const Expanded(child: Text('Editar cabeçalho')),
         ],
@@ -99,7 +99,7 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SecaoEditor(
-                icone: FontAwesomeIcons.building,
+                icone: Icons.business_outlined,
                 titulo: 'Identidade',
                 descricao: 'Dados exibidos no topo do pedido e no recibo.',
               ),
@@ -119,21 +119,21 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
                     key: const ValueKey('cabecalho-editor-nome'),
                     controller: _nomeController,
                     label: 'Nome da empresa',
-                    prefixIcon: FontAwesomeIcons.store,
+                    prefixIcon: const Icon(Icons.storefront_outlined),
                     largura: larguraCampo,
                   ),
                   _CampoCabecalho(
                     key: const ValueKey('cabecalho-editor-subtitulo'),
                     controller: _subtituloController,
                     label: 'Subtítulo',
-                    prefixIcon: FontAwesomeIcons.heading,
+                    prefixIcon: const Icon(Icons.title_outlined),
                     largura: larguraCampo,
                   ),
                 ],
               ),
               const SizedBox(height: 18),
               _SecaoEditor(
-                icone: FontAwesomeIcons.addressBook,
+                icone: Icons.contacts_outlined,
                 titulo: 'Contatos',
                 descricao:
                     'Informações usadas na área de contato do cabeçalho.',
@@ -147,28 +147,28 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
                     key: const ValueKey('cabecalho-editor-instagram'),
                     controller: _instagramController,
                     label: 'Instagram',
-                    prefixIcon: FontAwesomeIcons.instagram,
+                    prefixIcon: const FaIcon(FontAwesomeIcons.instagram),
                     largura: larguraCampo,
                   ),
                   _CampoCabecalho(
                     key: const ValueKey('cabecalho-editor-whatsapp'),
                     controller: _whatsappController,
                     label: 'WhatsApp',
-                    prefixIcon: FontAwesomeIcons.whatsapp,
+                    prefixIcon: const FaIcon(FontAwesomeIcons.whatsapp),
                     largura: larguraCampo,
                   ),
                   _CampoCabecalho(
                     key: const ValueKey('cabecalho-editor-telefone'),
                     controller: _telefoneController,
                     label: 'Telefone',
-                    prefixIcon: FontAwesomeIcons.phone,
+                    prefixIcon: const Icon(Icons.call_outlined),
                     largura: larguraCampo,
                   ),
                   _CampoCabecalho(
                     key: const ValueKey('cabecalho-editor-endereco'),
                     controller: _enderecoController,
                     label: 'Endereço',
-                    prefixIcon: FontAwesomeIcons.locationDot,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
                     largura: larguraConteudo,
                   ),
                 ],
@@ -204,7 +204,7 @@ class _CabecalhoEditorDialogState extends State<CabecalhoEditorDialog> {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const FaIcon(FontAwesomeIcons.floppyDisk),
+              : const Icon(Icons.save_outlined),
           label: const Text('Salvar'),
         ),
       ],
@@ -325,7 +325,7 @@ class _SecaoEditor extends StatelessWidget {
     required this.descricao,
   });
 
-  final FaIconData icone;
+  final IconData icone;
   final String titulo;
   final String descricao;
 
@@ -345,7 +345,7 @@ class _SecaoEditor extends StatelessWidget {
             color: colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: FaIcon(icone, color: colorScheme.onPrimaryContainer, size: 20),
+          child: Icon(icone, color: colorScheme.onPrimaryContainer, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -417,13 +417,13 @@ class _LogoEditor extends StatelessWidget {
             OutlinedButton.icon(
               key: const ValueKey('cabecalho-editor-selecionar-logo'),
               onPressed: onSelecionarLogo,
-              icon: const FaIcon(FontAwesomeIcons.image),
+              icon: const Icon(Icons.add_photo_alternate_outlined),
               label: const Text('Selecionar logo'),
             ),
             TextButton.icon(
               key: const ValueKey('cabecalho-editor-remover-logo'),
               onPressed: onRemoverLogo,
-              icon: const FaIcon(FontAwesomeIcons.trashCan),
+              icon: const Icon(Icons.delete_outline),
               label: const Text('Remover logo'),
               style: TextButton.styleFrom(foregroundColor: colorScheme.error),
             ),
@@ -510,7 +510,7 @@ class _CampoCabecalho extends StatelessWidget {
 
   final TextEditingController controller;
   final String label;
-  final FaIconData prefixIcon;
+  final Widget prefixIcon;
   final double largura;
 
   @override
@@ -520,10 +520,7 @@ class _CampoCabecalho extends StatelessWidget {
       child: TextField(
         key: key,
         controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: FaIcon(prefixIcon),
-        ),
+        decoration: InputDecoration(labelText: label, prefixIcon: prefixIcon),
       ),
     );
   }

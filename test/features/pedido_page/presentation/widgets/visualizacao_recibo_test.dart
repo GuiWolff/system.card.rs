@@ -44,8 +44,9 @@ void main() {
     expect(find.text('@systemcards'), findsOneWidget);
     expect(_findFaIcon(FontAwesomeIcons.instagram), findsOneWidget);
     expect(_findFaIcon(FontAwesomeIcons.whatsapp), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.phone), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.locationDot), findsOneWidget);
+    expect(_findIcon(Icons.call_outlined), findsOneWidget);
+    expect(_findIcon(Icons.location_on_outlined), findsOneWidget);
+    expect(find.byType(FaIcon), findsNWidgets(2));
     expect(find.text('Recebido:'), findsOneWidget);
     expect(find.text('24/05/2024'), findsOneWidget);
     expect(find.text('Entrega:'), findsOneWidget);
@@ -109,5 +110,11 @@ void main() {
 Finder _findFaIcon(FaIconData icon) {
   return find.byWidgetPredicate(
     (widget) => widget is FaIcon && widget.icon == icon.data,
+  );
+}
+
+Finder _findIcon(IconData icon) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Icon && widget.icon == icon,
   );
 }

@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/data/repositories/cabecalho_preferencias_repository.dart';
 import 'package:system_card_rs/features/pedido_page/pedido_page.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/pedido_page_layout.dart';
@@ -274,9 +273,9 @@ void main() {
       find.byKey(const ValueKey('recibo-compartilhar-whatsapp')),
       findsNothing,
     );
-    expect(_findFaIcon(FontAwesomeIcons.shareNodes), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.envelope), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.fileArrowDown), findsWidgets);
+    expect(_findIcon(Icons.ios_share_outlined), findsWidgets);
+    expect(_findIcon(Icons.mail_outline), findsWidgets);
+    expect(_findIcon(Icons.save_alt_outlined), findsWidgets);
   });
 
   testWidgets('PedidoPage compartilha PDF por e-mail com serviço fake', (
@@ -459,7 +458,7 @@ void main() {
       find.byKey(const ValueKey('recibo-pdf-preview-salvar-arquivo')),
       findsOneWidget,
     );
-    expect(_findFaIcon(FontAwesomeIcons.filePdf), findsWidgets);
+    expect(_findIcon(Icons.picture_as_pdf_outlined), findsWidgets);
     expect(viewModel.ultimaAcaoRecibo, 'pdf-gerado');
     expect(viewModel.gerandoPdf, isFalse);
   });
@@ -620,7 +619,7 @@ void main() {
       find.descendant(of: dialog, matching: find.text('Salvar arquivo')),
       findsOneWidget,
     );
-    expect(_findFaIcon(FontAwesomeIcons.shareNodes), findsWidgets);
+    expect(_findIcon(Icons.ios_share_outlined), findsWidgets);
 
     await tester.tap(find.text('E-mail'));
     await tester.pumpAndSettle();
@@ -722,8 +721,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(_findFaIcon(FontAwesomeIcons.idBadge), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.floppyDisk), findsWidgets);
+    expect(_findIcon(Icons.badge_outlined), findsWidgets);
+    expect(_findIcon(Icons.save_outlined), findsWidgets);
 
     await tester.enterText(
       find.byKey(const ValueKey('cabecalho-editor-nome')),
@@ -863,10 +862,10 @@ void main() {
     expect(find.text('Histórico de recibos'), findsOneWidget);
     expect(find.text('Recibo 0008'), findsOneWidget);
     expect(find.text('Carla Souza'), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.clockRotateLeft), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.fileArrowUp), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.copy), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.trashCan), findsWidgets);
+    expect(_findIcon(Icons.history_outlined), findsWidgets);
+    expect(_findIcon(Icons.upload_file_outlined), findsWidgets);
+    expect(_findIcon(Icons.copy_outlined), findsWidgets);
+    expect(_findIcon(Icons.delete_outline), findsWidgets);
 
     await tester.tap(find.text('Carregar'));
     await tester.pumpAndSettle();
@@ -1238,9 +1237,9 @@ class _ReciboRepositoryFake implements ReciboRepository {
   }
 }
 
-Finder _findFaIcon(FaIconData icon) {
+Finder _findIcon(IconData icon) {
   return find.byWidgetPredicate(
-    (widget) => widget is FaIcon && widget.icon == icon.data,
+    (widget) => widget is Icon && widget.icon == icon,
   );
 }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/item_recibo.dart';
 
 class ProdutosServicosTabela extends StatelessWidget {
@@ -26,83 +25,102 @@ class ProdutosServicosTabela extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                'Produtos / Serviços',
-                style: textTheme.titleMedium?.copyWith(
-                  color: colorScheme.secondary,
-                  fontWeight: FontWeight.w800,
+            Row(
+              children: [
+                Icon(
+                  Icons.point_of_sale_outlined,
+                  size: 20,
+                  color: colorScheme.primary,
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Produtos / Serviços',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: somenteLeitura ? null : onAdicionarItem,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Adicionar item'),
+                ),
+              ],
             ),
-            FilledButton.icon(
-              onPressed: somenteLeitura ? null : onAdicionarItem,
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.tertiary,
-                foregroundColor: colorScheme.onTertiary,
-              ),
-              icon: const FaIcon(FontAwesomeIcons.plus),
-              label: const Text('Adicionar item'),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compacto = constraints.maxWidth < 720;
+
+                return DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Column(
+                      children: [
+                        if (!compacto) const _TabelaCabecalho(),
+                        if (itens.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('Nenhum produto/serviço adicionado.'),
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: itens.length,
+                            separatorBuilder: (_, _) => Divider(
+                              height: 1,
+                              color: colorScheme.outlineVariant,
+                            ),
+                            itemBuilder: (context, indice) {
+                              return _ProdutoServicoLinha(
+                                indice: indice,
+                                item: itens[indice],
+                                onAdicionarItemPeloValorUnitario:
+                                    onAdicionarItemPeloValorUnitario,
+                                onAtualizarItem: onAtualizarItem,
+                                onRemoverItem: onRemoverItem,
+                                somenteLeitura: somenteLeitura,
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final compacto = constraints.maxWidth < 720;
-
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.outlineVariant),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Column(
-                  children: [
-                    if (!compacto) const _TabelaCabecalho(),
-                    if (itens.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text('Nenhum produto/serviço adicionado.'),
-                        ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: itens.length,
-                        separatorBuilder: (_, _) => Divider(
-                          height: 1,
-                          color: colorScheme.outlineVariant,
-                        ),
-                        itemBuilder: (context, indice) {
-                          return _ProdutoServicoLinha(
-                            indice: indice,
-                            item: itens[indice],
-                            onAdicionarItemPeloValorUnitario:
-                                onAdicionarItemPeloValorUnitario,
-                            onAtualizarItem: onAtualizarItem,
-                            onRemoverItem: onRemoverItem,
-                            somenteLeitura: somenteLeitura,
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+      ),
     );
   }
 }
@@ -115,12 +133,12 @@ class _TabelaCabecalho extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final estilo = textTheme.labelLarge?.copyWith(
-      color: colorScheme.onSecondary,
+      color: colorScheme.onSecondaryContainer,
       fontWeight: FontWeight.w800,
     );
 
     return ColoredBox(
-      color: colorScheme.secondary,
+      color: colorScheme.secondaryContainer,
       child: DefaultTextStyle.merge(
         style: estilo,
         child: const Padding(
@@ -210,7 +228,7 @@ class _ProdutoServicoLinha extends StatelessWidget {
           final remover = IconButton(
             tooltip: 'Remover item',
             onPressed: somenteLeitura ? null : () => onRemoverItem(indice),
-            icon: FaIcon(FontAwesomeIcons.trashCan, color: colorScheme.error),
+            icon: Icon(Icons.delete_outline, color: colorScheme.error),
           );
 
           if (compacto) {
@@ -588,7 +606,7 @@ class _TotalItem extends StatelessWidget {
             _ProdutoServicoLinha._formatarCentavos(item.totalCentavos),
             textAlign: TextAlign.right,
             style: textTheme.titleSmall?.copyWith(
-              color: colorScheme.tertiary,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w800,
             ),
           ),

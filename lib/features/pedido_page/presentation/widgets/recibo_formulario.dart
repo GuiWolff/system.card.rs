@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart';
 
@@ -35,136 +34,161 @@ class ReciboFormulario extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Dados do Recibo',
-          style: textTheme.titleMedium?.copyWith(
-            color: colorScheme.secondary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final largura = constraints.maxWidth;
-            final colunas = largura >= 900
-                ? 3
-                : largura >= 640
-                ? 2
-                : 1;
-            final larguraCampo = colunas == 1
-                ? largura
-                : (largura - (12 * (colunas - 1))) / colunas;
-
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                _CampoFormulario(
-                  chave: 'recibo-formulario-numero',
-                  largura: larguraCampo,
-                  label: 'Número do recibo',
-                  valorInicial: recibo.numero,
-                  helperText: 'Gerado automaticamente pelo sistema',
-                  readOnly: true,
-                  somenteLeitura: somenteLeitura,
-                  prefixIcon: FontAwesomeIcons.hashtag,
-                  onChanged: onNumeroChanged,
-                  textInputAction: TextInputAction.next,
+                Icon(
+                  Icons.assignment_outlined,
+                  size: 18,
+                  color: colorScheme.secondary,
                 ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-recebido',
-                  largura: larguraCampo,
-                  label: 'Recebido',
-                  valorInicial: _formatarData(recibo.dataRecebimento),
-                  hintText: 'dd/mm/aaaa',
-                  prefixIcon: FontAwesomeIcons.calendarDays,
-                  keyboardType: TextInputType.datetime,
-                  somenteLeitura: somenteLeitura,
-                  onChanged: (valor) {
-                    final data = _converterData(valor);
-                    if (data != null) {
-                      onDataRecebimentoChanged(data);
-                    }
-                  },
-                  textInputAction: TextInputAction.next,
-                ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-entrega',
-                  largura: larguraCampo,
-                  label: 'Entrega',
-                  valorInicial: _formatarData(recibo.dataEntrega),
-                  hintText: 'dd/mm/aaaa',
-                  prefixIcon: FontAwesomeIcons.calendarCheck,
-                  keyboardType: TextInputType.datetime,
-                  somenteLeitura: somenteLeitura,
-                  onChanged: (valor) {
-                    final data = _converterData(valor);
-                    if (data != null) {
-                      onDataEntregaChanged(data);
-                    }
-                  },
-                  textInputAction: TextInputAction.next,
-                ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-cliente',
-                  largura: larguraCampo,
-                  label: 'Cliente',
-                  valorInicial: recibo.cliente,
-                  prefixIcon: FontAwesomeIcons.user,
-                  somenteLeitura: somenteLeitura,
-                  onChanged: onClienteChanged,
-                  textInputAction: TextInputAction.next,
-                ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-telefone',
-                  largura: larguraCampo,
-                  label: 'Telefone',
-                  valorInicial: TelefoneInputFormatter.formatar(
-                    recibo.telefone,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Dados do Recibo',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  prefixIcon: FontAwesomeIcons.phone,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: const [TelefoneInputFormatter()],
-                  somenteLeitura: somenteLeitura,
-                  onChanged: onTelefoneChanged,
-                  textInputAction: TextInputAction.next,
-                ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-valor-entrada',
-                  largura: larguraCampo,
-                  label: 'Valor de entrada',
-                  valorInicial: valorEntradaFormatado.replaceFirst('R\$ ', ''),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  prefixIcon: FontAwesomeIcons.moneyBill,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-                  ],
-                  somenteLeitura: somenteLeitura,
-                  onChanged: (valor) =>
-                      onValorEntradaChanged(_converterMoeda(valor)),
-                  textInputAction: TextInputAction.next,
-                ),
-                _CampoFormulario(
-                  chave: 'recibo-formulario-observacoes',
-                  largura: largura,
-                  label: 'Observações',
-                  valorInicial: recibo.observacoes,
-                  maxLines: 3,
-                  prefixIcon: FontAwesomeIcons.noteSticky,
-                  somenteLeitura: somenteLeitura,
-                  onChanged: onObservacoesChanged,
-                  textInputAction: TextInputAction.newline,
                 ),
               ],
-            );
-          },
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final largura = constraints.maxWidth;
+                final colunas = largura >= 900
+                    ? 3
+                    : largura >= 640
+                    ? 2
+                    : 1;
+                final larguraCampo = colunas == 1
+                    ? largura
+                    : (largura - (12 * (colunas - 1))) / colunas;
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-numero',
+                      largura: larguraCampo,
+                      label: 'Número do recibo',
+                      valorInicial: recibo.numero,
+                      helperText: 'Gerado automaticamente pelo sistema',
+                      readOnly: true,
+                      somenteLeitura: somenteLeitura,
+                      prefixIcon: Icons.tag_outlined,
+                      onChanged: onNumeroChanged,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-recebido',
+                      largura: larguraCampo,
+                      label: 'Recebido',
+                      valorInicial: _formatarData(recibo.dataRecebimento),
+                      hintText: 'dd/mm/aaaa',
+                      prefixIcon: Icons.calendar_month_outlined,
+                      keyboardType: TextInputType.datetime,
+                      somenteLeitura: somenteLeitura,
+                      onChanged: (valor) {
+                        final data = _converterData(valor);
+                        if (data != null) {
+                          onDataRecebimentoChanged(data);
+                        }
+                      },
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-entrega',
+                      largura: larguraCampo,
+                      label: 'Entrega',
+                      valorInicial: _formatarData(recibo.dataEntrega),
+                      hintText: 'dd/mm/aaaa',
+                      prefixIcon: Icons.event_available_outlined,
+                      keyboardType: TextInputType.datetime,
+                      somenteLeitura: somenteLeitura,
+                      onChanged: (valor) {
+                        final data = _converterData(valor);
+                        if (data != null) {
+                          onDataEntregaChanged(data);
+                        }
+                      },
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-cliente',
+                      largura: larguraCampo,
+                      label: 'Cliente',
+                      valorInicial: recibo.cliente,
+                      prefixIcon: Icons.person_outline,
+                      somenteLeitura: somenteLeitura,
+                      onChanged: onClienteChanged,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-telefone',
+                      largura: larguraCampo,
+                      label: 'Telefone',
+                      valorInicial: TelefoneInputFormatter.formatar(
+                        recibo.telefone,
+                      ),
+                      prefixIcon: Icons.call_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: const [TelefoneInputFormatter()],
+                      somenteLeitura: somenteLeitura,
+                      onChanged: onTelefoneChanged,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-valor-entrada',
+                      largura: larguraCampo,
+                      label: 'Valor de entrada',
+                      valorInicial: valorEntradaFormatado.replaceFirst(
+                        'R\$ ',
+                        '',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      prefixIcon: Icons.payments_outlined,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                      ],
+                      somenteLeitura: somenteLeitura,
+                      onChanged: (valor) =>
+                          onValorEntradaChanged(_converterMoeda(valor)),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    _CampoFormulario(
+                      chave: 'recibo-formulario-observacoes',
+                      largura: largura,
+                      label: 'Observações',
+                      valorInicial: recibo.observacoes,
+                      maxLines: 3,
+                      prefixIcon: Icons.notes_outlined,
+                      somenteLeitura: somenteLeitura,
+                      onChanged: onObservacoesChanged,
+                      textInputAction: TextInputAction.newline,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -246,7 +270,7 @@ class _CampoFormulario extends StatefulWidget {
   final String? helperText;
   final bool readOnly;
   final bool somenteLeitura;
-  final FaIconData? prefixIcon;
+  final IconData? prefixIcon;
 
   @override
   State<_CampoFormulario> createState() => _CampoFormularioState();
@@ -292,7 +316,7 @@ class _CampoFormularioState extends State<_CampoFormulario> {
           helperText: widget.helperText,
           prefixIcon: widget.prefixIcon == null
               ? null
-              : FaIcon(widget.prefixIcon),
+              : Icon(widget.prefixIcon),
         ),
         keyboardType: widget.keyboardType,
         inputFormatters: widget.inputFormatters,

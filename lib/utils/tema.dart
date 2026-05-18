@@ -62,6 +62,11 @@ class TemaApp {
       fontFamily: TemaTipografia.familiaFonte,
       fontFamilyFallback: TemaTipografia.familiasReserva,
       textTheme: estiloTexto.materialTextTheme,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      hoverColor: temaCores.hover,
+      focusColor: temaCores.foco,
+      highlightColor: temaCores.pressionado,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -74,6 +79,7 @@ class TemaApp {
         color: temaCores.backgroundSecundario,
         elevation: 0,
         margin: EdgeInsets.zero,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(TemaMedidas.raioCard),
           side: BorderSide(color: temaCores.borda),
@@ -90,12 +96,22 @@ class TemaApp {
       outlinedButtonTheme: _outlinedButtonTheme(temaCores),
       textButtonTheme: _textButtonTheme(temaCores),
       checkboxTheme: _checkboxTheme(temaCores),
+      dialogTheme: _dialogTheme(temaCores),
+      popupMenuTheme: _popupMenuTheme(temaCores),
+      menuTheme: _menuTheme(temaCores),
+      listTileTheme: _listTileTheme(temaCores),
+      chipTheme: _chipTheme(temaCores),
+      dataTableTheme: _dataTableTheme(temaCores),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark ? TemaCores.neutro900 : TemaCores.verdeProfundo,
         contentTextStyle: estiloTexto.bodyText.base.copyWith(
           color: TemaCores.conteudoSobreDestaque,
         ),
         behavior: SnackBarBehavior.floating,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
+        ),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: temaCores.destaque,
@@ -120,6 +136,7 @@ class TemaApp {
       prefixIconColor: temaCores.icons,
       suffixIconColor: temaCores.icons,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      constraints: const BoxConstraints(minHeight: TemaMedidas.alturaControle),
       border: border,
       enabledBorder: border,
       focusedBorder: border.copyWith(
@@ -147,6 +164,9 @@ class TemaApp {
         disabledForegroundColor: temaCores.contrastePrimaria.withValues(
           alpha: 0.72,
         ),
+        padding: TemaMedidas.paddingControle,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
         ),
@@ -166,6 +186,9 @@ class TemaApp {
         foregroundColor: temaCores.texto,
         disabledForegroundColor: temaCores.textoSutil,
         side: BorderSide(color: temaCores.outline),
+        padding: TemaMedidas.paddingControle,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
         ),
@@ -179,6 +202,9 @@ class TemaApp {
       style: TextButton.styleFrom(
         foregroundColor: temaCores.primaria,
         disabledForegroundColor: temaCores.textoSutil,
+        padding: TemaMedidas.paddingControleCompacto,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
         textStyle: estiloTexto.labelText.base,
       ),
     );
@@ -201,6 +227,105 @@ class TemaApp {
       side: BorderSide(color: temaCores.outline),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(TemaMedidas.raioCheckbox),
+      ),
+    );
+  }
+
+  DialogThemeData _dialogTheme(TemaCores temaCores) {
+    return DialogThemeData(
+      backgroundColor: temaCores.backgroundSecundario,
+      surfaceTintColor: Colors.transparent,
+      elevation: 8,
+      shadowColor: temaCores.sombra,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TemaMedidas.raioPainel),
+        side: BorderSide(color: temaCores.borda),
+      ),
+      titleTextStyle: estiloTexto.titleBold.corTexto,
+      contentTextStyle: estiloTexto.bodyText.corTexto,
+    );
+  }
+
+  PopupMenuThemeData _popupMenuTheme(TemaCores temaCores) {
+    return PopupMenuThemeData(
+      color: temaCores.backgroundSecundario,
+      surfaceTintColor: Colors.transparent,
+      elevation: 6,
+      shadowColor: temaCores.sombra,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
+        side: BorderSide(color: temaCores.borda),
+      ),
+      textStyle: estiloTexto.bodyText.corTexto,
+    );
+  }
+
+  MenuThemeData _menuTheme(TemaCores temaCores) {
+    return MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStateProperty.all(
+          temaCores.backgroundSecundario,
+        ),
+        surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+        elevation: WidgetStateProperty.all(4),
+        shadowColor: WidgetStateProperty.all(temaCores.sombra),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
+            side: BorderSide(color: temaCores.borda),
+          ),
+        ),
+      ),
+    );
+  }
+
+  ListTileThemeData _listTileTheme(TemaCores temaCores) {
+    return ListTileThemeData(
+      dense: true,
+      minVerticalPadding: 8,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      iconColor: temaCores.icons,
+      textColor: temaCores.texto,
+      selectedColor: temaCores.primaria,
+      selectedTileColor: temaCores.containerPrimario,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
+      ),
+    );
+  }
+
+  ChipThemeData _chipTheme(TemaCores temaCores) {
+    return ChipThemeData(
+      backgroundColor: temaCores.surfaceBaixa,
+      selectedColor: temaCores.containerPrimario,
+      disabledColor: temaCores.surfaceBaixa.withValues(alpha: 0.64),
+      side: BorderSide(color: temaCores.borda),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TemaMedidas.raioControle),
+      ),
+      labelStyle: estiloTexto.labelText.corTexto,
+      secondaryLabelStyle: estiloTexto.labelText.primaria,
+      iconTheme: IconThemeData(color: temaCores.icons, size: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    );
+  }
+
+  DataTableThemeData _dataTableTheme(TemaCores temaCores) {
+    return DataTableThemeData(
+      headingRowColor: WidgetStateProperty.all(temaCores.surfaceBaixa),
+      dataRowColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered)) {
+          return temaCores.hover;
+        }
+
+        return Colors.transparent;
+      }),
+      dividerThickness: 1,
+      headingTextStyle: estiloTexto.labelText.corTexto,
+      dataTextStyle: estiloTexto.bodyText.corTexto,
+      decoration: BoxDecoration(
+        border: Border.all(color: temaCores.borda),
+        borderRadius: BorderRadius.circular(TemaMedidas.raioCard),
       ),
     );
   }
@@ -319,13 +444,13 @@ class TemaCores {
       isDark ? const Color(0xFF1A1E23) : Colors.white;
 
   Color get surfaceBaixa =>
-      isDark ? _camadaPrimariaEscura(0.08) : const Color(0xFFF1F5F9);
+      isDark ? _camadaPrimariaEscura(0.08) : const Color(0xFFF2F5F8);
 
   Color get surfaceAlta =>
-      isDark ? _camadaPrimariaEscura(0.14) : const Color(0xFFFBFCFE);
+      isDark ? _camadaPrimariaEscura(0.14) : const Color(0xFFFBFCFD);
 
   Color get surfaceMaisAlta =>
-      isDark ? _camadaPrimariaEscura(0.20) : const Color(0xFFEAF1F8);
+      isDark ? _camadaPrimariaEscura(0.20) : const Color(0xFFE8EEF5);
 
   Color get campo => backgroundSecundario;
 
@@ -334,6 +459,20 @@ class TemaCores {
   Color get outline => isDark ? const Color(0xFF46596A) : neutro200;
 
   Color get icons => isDark ? const Color(0xFFC9D6E2) : neutro600;
+
+  Color get hover => isDark
+      ? primaria.withValues(alpha: 0.14)
+      : primaria.withValues(alpha: 0.08);
+
+  Color get foco => isDark
+      ? destaque.withValues(alpha: 0.24)
+      : destaque.withValues(alpha: 0.16);
+
+  Color get pressionado => isDark
+      ? primaria.withValues(alpha: 0.20)
+      : primaria.withValues(alpha: 0.12);
+
+  Color get sombra => Colors.black.withValues(alpha: isDark ? 0.34 : 0.08);
 
   Color get green => isDark ? verdeEnergia : verdeDestaque;
 
@@ -440,9 +579,18 @@ abstract final class TemaTipografia {
 }
 
 abstract final class TemaMedidas {
-  static const alturaControle = 46.0;
+  static const alturaControle = 42.0;
   static const larguraMinimaControle = 64.0;
   static const raioControle = 4.0;
   static const raioCheckbox = 4.0;
   static const raioCard = 8.0;
+  static const raioPainel = 8.0;
+  static const paddingControle = EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 10,
+  );
+  static const paddingControleCompacto = EdgeInsets.symmetric(
+    horizontal: 10,
+    vertical: 8,
+  );
 }

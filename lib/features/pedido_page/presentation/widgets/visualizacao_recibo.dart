@@ -121,24 +121,36 @@ class _CabecalhoEmpresa extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ContatoEmpresa(
-                    icone: FontAwesomeIcons.instagram,
+                    icone: FaIcon(
+                      FontAwesomeIcons.instagram,
+                      size: 17,
+                      color: colorScheme.primary,
+                    ),
                     texto: '@systemcards',
-                    corIcone: colorScheme.primary,
                   ),
                   _ContatoEmpresa(
-                    icone: FontAwesomeIcons.whatsapp,
+                    icone: FaIcon(
+                      FontAwesomeIcons.whatsapp,
+                      size: 17,
+                      color: colorScheme.tertiary,
+                    ),
                     texto: '51 998020198',
-                    corIcone: colorScheme.tertiary,
                   ),
                   _ContatoEmpresa(
-                    icone: FontAwesomeIcons.phone,
+                    icone: Icon(
+                      Icons.call_outlined,
+                      size: 17,
+                      color: colorScheme.onSurface,
+                    ),
                     texto: '51 30551025',
-                    corIcone: colorScheme.onSurface,
                   ),
                   _ContatoEmpresa(
-                    icone: FontAwesomeIcons.locationDot,
+                    icone: Icon(
+                      Icons.location_on_outlined,
+                      size: 17,
+                      color: colorScheme.onSurface,
+                    ),
                     texto: 'Rua 20 de Setembro, 528\nCentro - Guaíba - RS',
-                    corIcone: colorScheme.onSurface,
                   ),
                 ],
               ),
@@ -151,15 +163,10 @@ class _CabecalhoEmpresa extends StatelessWidget {
 }
 
 class _ContatoEmpresa extends StatelessWidget {
-  const _ContatoEmpresa({
-    required this.icone,
-    required this.texto,
-    required this.corIcone,
-  });
+  const _ContatoEmpresa({required this.icone, required this.texto});
 
-  final FaIconData icone;
+  final Widget icone;
   final String texto;
-  final Color corIcone;
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +177,7 @@ class _ContatoEmpresa extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FaIcon(icone, size: 17, color: corIcone),
+          icone,
           const SizedBox(width: 8),
           Expanded(child: Text(texto, style: textTheme.bodySmall)),
         ],

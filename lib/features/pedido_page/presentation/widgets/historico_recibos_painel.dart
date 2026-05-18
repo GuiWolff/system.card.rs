@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 
 class HistoricoRecibosPainel extends StatefulWidget {
@@ -56,10 +55,7 @@ class _HistoricoRecibosPainelState extends State<HistoricoRecibosPainel> {
           children: [
             Row(
               children: [
-                FaIcon(
-                  FontAwesomeIcons.clockRotateLeft,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.history_outlined, color: colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -73,7 +69,7 @@ class _HistoricoRecibosPainelState extends State<HistoricoRecibosPainel> {
                 IconButton(
                   tooltip: 'Fechar histórico',
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const FaIcon(FontAwesomeIcons.xmark),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
@@ -82,14 +78,14 @@ class _HistoricoRecibosPainelState extends State<HistoricoRecibosPainel> {
               controller: _pesquisaController,
               decoration: InputDecoration(
                 labelText: 'Pesquisar por número, cliente ou telefone',
-                prefixIcon: const FaIcon(FontAwesomeIcons.magnifyingGlass),
+                prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   tooltip: 'Limpar pesquisa',
                   onPressed: () {
                     _pesquisaController.clear();
                     widget.onPesquisar('');
                   },
-                  icon: const FaIcon(FontAwesomeIcons.xmark),
+                  icon: const Icon(Icons.close),
                 ),
               ),
               textInputAction: TextInputAction.search,
@@ -195,12 +191,12 @@ class _HistoricoReciboItem extends StatelessWidget {
                     foregroundColor: colorScheme.secondary,
                     side: BorderSide(color: colorScheme.secondary),
                   ),
-                  icon: const FaIcon(FontAwesomeIcons.fileArrowUp),
+                  icon: const Icon(Icons.upload_file_outlined),
                   label: const Text('Carregar'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => onDuplicar(recibo),
-                  icon: const FaIcon(FontAwesomeIcons.copy),
+                  icon: const Icon(Icons.copy_outlined),
                   label: const Text('Duplicar'),
                 ),
                 OutlinedButton.icon(
@@ -209,7 +205,7 @@ class _HistoricoReciboItem extends StatelessWidget {
                     foregroundColor: colorScheme.error,
                     side: BorderSide(color: colorScheme.outlineVariant),
                   ),
-                  icon: const FaIcon(FontAwesomeIcons.trashCan),
+                  icon: const Icon(Icons.delete_outline),
                   label: const Text('Excluir'),
                 ),
               ],

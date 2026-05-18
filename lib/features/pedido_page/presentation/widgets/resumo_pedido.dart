@@ -41,18 +41,30 @@ class ResumoPedido extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'RESUMO',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: colorScheme.secondary,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'RESUMO',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final compacto = constraints.maxWidth < 720;
@@ -68,11 +80,13 @@ class ResumoPedido extends StatelessWidget {
                         largura: larguraCampo,
                         rotulo: 'Total do Pedido:',
                         valor: totalPedido,
+                        icon: Icons.summarize_outlined,
                       ),
                       _CampoResumoPedido(
                         largura: larguraCampo,
                         rotulo: 'Valor Entrada:',
                         valor: valorEntrada,
+                        icon: Icons.payments_outlined,
                         mensagemErro: mensagemValorEntrada,
                         onChanged: somenteLeitura
                             ? null
@@ -82,6 +96,7 @@ class ResumoPedido extends StatelessWidget {
                         largura: larguraCampo,
                         rotulo: 'Valor a pagar na Entrega:',
                         valor: valorAPagarEntrega,
+                        icon: Icons.local_shipping_outlined,
                         destaque: true,
                       ),
                     ],
@@ -101,6 +116,7 @@ class _CampoResumoPedido extends StatefulWidget {
     required this.largura,
     required this.rotulo,
     required this.valor,
+    required this.icon,
     this.mensagemErro,
     this.onChanged,
     this.destaque = false,
@@ -109,6 +125,7 @@ class _CampoResumoPedido extends StatefulWidget {
   final double largura;
   final String rotulo;
   final String valor;
+  final IconData icon;
   final String? mensagemErro;
   final ValueChanged<int>? onChanged;
   final bool destaque;
@@ -157,12 +174,28 @@ class _CampoResumoPedidoState extends State<_CampoResumoPedido> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.rotulo,
-            style: textTheme.labelLarge?.copyWith(
-              color: widget.destaque ? corDestaque : colorScheme.onSurface,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              Icon(
+                widget.icon,
+                size: 16,
+                color: widget.destaque
+                    ? corDestaque
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  widget.rotulo,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: widget.destaque
+                        ? corDestaque
+                        : colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           if (widget.onChanged == null)

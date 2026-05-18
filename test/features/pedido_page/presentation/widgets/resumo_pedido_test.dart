@@ -26,6 +26,10 @@ void main() {
     expect(find.text('R\$ 123,45'), findsOneWidget);
     expect(find.byKey(const ValueKey('resumo-valor-entrada')), findsOneWidget);
     expect(find.text('R\$ 78,45'), findsOneWidget);
+    expect(_findIcon(Icons.receipt_long_outlined), findsOneWidget);
+    expect(_findIcon(Icons.summarize_outlined), findsOneWidget);
+    expect(_findIcon(Icons.payments_outlined), findsOneWidget);
+    expect(_findIcon(Icons.local_shipping_outlined), findsOneWidget);
   });
 
   testWidgets('ResumoPedido envia valor de entrada em centavos', (
@@ -148,4 +152,10 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+}
+
+Finder _findIcon(IconData icon) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Icon && widget.icon == icon,
+  );
 }

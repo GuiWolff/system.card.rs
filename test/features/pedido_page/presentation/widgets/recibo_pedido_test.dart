@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/pedido_page.dart';
 
 void main() {
@@ -26,13 +25,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Gerado automaticamente pelo sistema'), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.hashtag), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.calendarDays), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.calendarCheck), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.user), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.phone), findsWidgets);
-    expect(_findFaIcon(FontAwesomeIcons.moneyBill), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.noteSticky), findsOneWidget);
+    expect(_findIcon(Icons.tag_outlined), findsOneWidget);
+    expect(_findIcon(Icons.calendar_month_outlined), findsOneWidget);
+    expect(_findIcon(Icons.event_available_outlined), findsOneWidget);
+    expect(_findIcon(Icons.person_outline), findsOneWidget);
+    expect(_findIcon(Icons.call_outlined), findsWidgets);
+    expect(_findIcon(Icons.payments_outlined), findsOneWidget);
+    expect(_findIcon(Icons.notes_outlined), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('recibo-formulario-cliente')),
@@ -79,7 +78,7 @@ void main() {
     );
 
     expect(find.text('Nenhum produto/serviço adicionado.'), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.plus), findsOneWidget);
+    expect(_findIcon(Icons.add), findsOneWidget);
 
     final botaoAdicionar = find.text('Adicionar item');
     await tester.ensureVisible(botaoAdicionar);
@@ -113,7 +112,7 @@ void main() {
     final botaoRemover = find.byTooltip('Remover item');
     await tester.ensureVisible(botaoRemover);
     await tester.pumpAndSettle();
-    expect(_findFaIcon(FontAwesomeIcons.trashCan), findsOneWidget);
+    expect(_findIcon(Icons.delete_outline), findsOneWidget);
     await tester.tap(botaoRemover);
     await tester.pumpAndSettle();
 
@@ -539,7 +538,7 @@ void main() {
     expect(chamadas, 1);
   });
 
-  testWidgets('ReciboPedido usa Font Awesome nas ações do recibo', (
+  testWidgets('ReciboPedido usa ícones nativos nas ações do recibo', (
     WidgetTester tester,
   ) async {
     final viewModel = PedidoPageViewModel();
@@ -555,13 +554,13 @@ void main() {
       ),
     );
 
-    expect(_findFaIcon(FontAwesomeIcons.floppyDisk), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.fileCirclePlus), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.clockRotateLeft), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.users), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.print), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.filePdf), findsOneWidget);
-    expect(_findFaIcon(FontAwesomeIcons.shareNodes), findsOneWidget);
+    expect(_findIcon(Icons.save_outlined), findsOneWidget);
+    expect(_findIcon(Icons.note_add_outlined), findsOneWidget);
+    expect(_findIcon(Icons.history_outlined), findsOneWidget);
+    expect(_findIcon(Icons.groups_outlined), findsOneWidget);
+    expect(_findIcon(Icons.print_outlined), findsOneWidget);
+    expect(_findIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+    expect(_findIcon(Icons.ios_share_outlined), findsOneWidget);
   });
 }
 
@@ -676,8 +675,8 @@ bool _campoTemFoco(WidgetTester tester, Finder campo) {
   return editableText.focusNode.hasFocus;
 }
 
-Finder _findFaIcon(FaIconData icon) {
+Finder _findIcon(IconData icon) {
   return find.byWidgetPredicate(
-    (widget) => widget is FaIcon && widget.icon == icon.data,
+    (widget) => widget is Icon && widget.icon == icon,
   );
 }

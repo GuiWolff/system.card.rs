@@ -1295,10 +1295,7 @@
 - Instagram e WhatsApp deixaram de depender de renderização SVG direta e passaram a usar `FaIcon` com:
   - `FontAwesomeIcons.instagram`;
   - `FontAwesomeIcons.whatsapp`.
-- Telefone, endereço e edição do cabeçalho também passaram a usar equivalentes do Font Awesome:
-  - `FontAwesomeIcons.phone`;
-  - `FontAwesomeIcons.locationDot`;
-  - `FontAwesomeIcons.penToSquare`.
+- Telefone, endereço e edição do cabeçalho também passaram a usar equivalentes do Font Awesome neste ciclo histórico, estado depois substituído por ícones nativos na modernização de 2026-05-18.
 - Os assets `lib/resources/icon_instagram.svg` e `lib/resources/icon_whatsapp.svg` permanecem no projeto como legado não removido neste slice.
 - O teste do cabeçalho valida os ícones Font Awesome visíveis e não depende mais de widget SVG.
 - Não houve alteração de regras da `PedidoPageViewModel`, persistência, PDF, compartilhamento ou formulário de recibo.
@@ -1306,25 +1303,25 @@
 
 ## Atualização de layout - 2026-05-15 - Slice 2/3 - Ícones Font Awesome em dialogs e painéis auxiliares
 - A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
-- `CabecalhoEditorDialog`, `ClientesPainel`, `HistoricoRecibosPainel`, `ReciboCompartilhamentoDialog` e `ReciboPdfPreviewDialog` passaram a usar `FaIcon` e `FontAwesomeIcons` nos ícones visíveis.
+- `CabecalhoEditorDialog`, `ClientesPainel`, `HistoricoRecibosPainel`, `ReciboCompartilhamentoDialog` e `ReciboPdfPreviewDialog` passaram a usar Font Awesome nos ícones visíveis neste ciclo histórico, estado depois substituído por ícones nativos na modernização de 2026-05-18.
 - O editor de cabeçalho preserva campos, chaves, callbacks e regras de seleção/remoção/restauração/salvamento da logo; apenas os ícones de título, seções, campos e ações foram migrados para Font Awesome.
 - O painel de clientes preserva pesquisa, cadastro, seleção, formatação de telefone, exibição de e-mail e estados de erro/feedback; seus ícones de busca, fechar, cliente, telefone, e-mail e cadastrar usam Font Awesome.
 - O histórico de recibos preserva pesquisa, limpeza, carregamento, duplicação e exclusão de recibos; seus ícones de histórico, busca, limpar/fechar, carregar, copiar e excluir usam Font Awesome.
-- O diálogo de compartilhamento preserva as opções `E-mail`, `WhatsApp` e `Salvar arquivo`, retornando os mesmos valores de `ReciboCompartilhamentoOpcao`; seus ícones usam `shareNodes`, `envelope`, `whatsapp` e `fileArrowDown`.
-- O diálogo de prévia de PDF preserva `ReciboPdfPreviewDialog`, `PdfPreview`, builder customizado de teste e ação `Fechar`; o título usa `FontAwesomeIcons.filePdf`.
-- Testes relacionados passaram a validar os `FaIcon` renderizados nos painéis e diálogos cobertos por `clientes_painel_test.dart` e `pedido_page_test.dart`.
+- O diálogo de compartilhamento preserva as opções `E-mail`, `WhatsApp` e `Salvar arquivo`, retornando os mesmos valores de `ReciboCompartilhamentoOpcao`; seus ícones usaram Font Awesome neste ciclo histórico.
+- O diálogo de prévia de PDF preserva `ReciboPdfPreviewDialog`, `PdfPreview`, builder customizado de teste e ação `Fechar`; o título usou Font Awesome neste ciclo histórico.
+- Testes relacionados passaram a validar os ícones renderizados nos painéis e diálogos cobertos por `clientes_painel_test.dart` e `pedido_page_test.dart`.
 - Não houve alteração de models, repositories, services, ViewModel, regras de cadastro, pesquisa, histórico, compartilhamento ou preview de PDF.
 - Impacto em UI: sim, por alteração dos ícones visíveis dos dialogs e painéis auxiliares acessados pela `PedidoPage`. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
 
 ## Atualização de layout - 2026-05-15 - Slice 3/3 - Ícones Font Awesome no recibo
 - A `PedidoPage` continua sendo a Page agregadora única da feature `pedido_page`, sem criação de nova tela, rota ou feature paralela.
-- `ReciboPedido`, `ReciboFormulario`, `ProdutosServicosTabela` e `VisualizacaoRecibo` passaram a usar `FaIcon` e `FontAwesomeIcons` nos ícones visíveis.
+- `ReciboPedido`, `ReciboFormulario`, `ProdutosServicosTabela` e `VisualizacaoRecibo` passaram a usar Font Awesome nos ícones visíveis neste ciclo histórico, estado depois substituído por ícones nativos na modernização de 2026-05-18.
 - As ações do recibo preservam os mesmos callbacks, rótulos, estados de carregamento e bloqueio de somente leitura; apenas os ícones foram migrados para Font Awesome.
 - Os campos do formulário preservam chaves, foco, formatação, leitura/somente leitura e callbacks existentes; seus prefixos visuais agora usam Font Awesome.
 - A tabela de produtos/serviços preserva `ListView.separated`, edição dos itens, Enter no valor unitário, remoção e botão `Adicionar item`; os ícones de adicionar e remover usam Font Awesome.
-- A visualização do recibo preserva layout, dados, totais e tabela da prévia; Instagram e WhatsApp usam ícones de marca do Font Awesome, e telefone/endereço usam equivalentes Font Awesome.
+- A visualização do recibo preserva layout, dados, totais e tabela da prévia; Instagram e WhatsApp usam ícones de marca do Font Awesome, e telefone/endereço usaram equivalentes Font Awesome neste ciclo histórico.
 - Não houve alteração de cálculos, validações, persistência, geração de PDF, impressão, compartilhamento, models, repositories, services ou APIs públicas.
-- Testes relacionados passaram a validar `FaIcon` nos widgets de recibo e visualização cobertos por `recibo_pedido_test.dart` e `visualizacao_recibo_test.dart`.
+- Testes relacionados passaram a validar os ícones nos widgets de recibo e visualização cobertos por `recibo_pedido_test.dart` e `visualizacao_recibo_test.dart`.
 - A varredura final da apresentação da feature não encontrou uso remanescente de ícones Material, renderização SVG direta ou import do pacote SVG.
 - Impacto em UI: sim, por alteração dos ícones visíveis do recibo editável, formulário, tabela e prévia visual. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
 
@@ -1454,3 +1451,212 @@
 - Os fluxos de `Compartilhar`, `E-mail`, `Salvar arquivo`, `Gerar PDF`, prévia de PDF e impressão foram preservados.
 - Não houve alteração visual neste ajuste; o impacto é comportamental no payload entregue ao `share_plus`.
 - Teste de serviço cobre que o canal genérico aceita um `XFile` baseado em arquivo real e preserva ausência de `text`/`subject`, MIME type, bytes e nome previsível.
+
+## Revisão planejada de layout - 2026-05-18 - Modernização Microsoft 2026 e ícones nativos
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A modernização planejada deve deixar o app com leitura de software de caixa empresarial:
+  - denso, operacional e claro;
+  - com comandos principais agrupados;
+  - com superfícies neutras e bordas sutis;
+  - com responsividade estável para Web/Desktop/Mobile;
+  - sem layout de marketing, hero decorativo, gradientes ornamentais ou cards aninhados.
+- A direção visual deve se aproximar de uma experiência Microsoft/Fluent atual usando Flutter Material 3 e o tema local, sem adicionar pacote `fluent_ui`.
+- `FaIcon` deve permanecer permitido apenas para ícones de marca:
+  - `FontAwesomeIcons.instagram`;
+  - `FontAwesomeIcons.whatsapp`.
+- Todos os demais ícones visíveis devem ser migrados para ícones nativos do Flutter com `Icon` e `Icons.*`.
+- `font_awesome_flutter` não deve ser removido enquanto Instagram e WhatsApp continuarem usando `FaIcon`.
+- Os assets SVG de Instagram e WhatsApp permanecem como legado, sem remoção automática nesta tarefa.
+- A modernização foi planejada em `.codex/layout/layout-26-05-18-1.md`, dividida em 7 slices:
+  - tema e tokens visuais;
+  - shell da `PedidoPage`;
+  - cabeçalho e editor;
+  - ações e formulário do recibo;
+  - produtos, serviços e resumo;
+  - visualização e painéis auxiliares;
+  - auditoria final e validação ampla.
+- Cada slice com impacto visual deve atualizar este contrato novamente com o resultado real aplicado.
+
+## Atualização de layout - 2026-05-18 - Slice 1/7 - Tema e tokens visuais
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A base visual global em `lib/utils/tema.dart` foi modernizada mantendo Material 3, `TemaApp`, `TemaCores`, `TemaEstiloTexto` e `TemaMedidas` como fonte central de estilo.
+- As cores semânticas foram preservadas:
+  - `primaria` continua representando a identidade principal;
+  - `destaque`, `green`, `red`, `backgroundPrimario`, `backgroundSecundario`, `texto`, `icons`, `borda` e `outline` continuam adaptados para modo claro e escuro.
+- O tema passou a usar densidade visual compacta e `MaterialTapTargetSize.shrinkWrap`, preparando uma leitura mais operacional para software de caixa empresarial sem alterar os fluxos funcionais.
+- Controles globais receberam base mais densa e previsível:
+  - `InputDecorationTheme` mantém campos preenchidos, bordas sutis e altura mínima de controle;
+  - `FilledButton`, `OutlinedButton` e `TextButton` passam a compartilhar padding, raio e densidade centralizados;
+  - `CheckboxThemeData` segue usando a cor primária e contraste semântico.
+- Superfícies globais foram refinadas:
+  - `CardThemeData` remove tinta de superfície e preserva borda semântica;
+  - `DialogThemeData`, `PopupMenuThemeData` e `MenuThemeData` agora usam superfície, sombra, borda e raio centralizados;
+  - `SnackBarThemeData` recebeu raio e elevação coerentes com a base visual.
+- Foram adicionados tokens semânticos de interação em `TemaCores` para `hover`, `foco`, `pressionado` e `sombra`, evitando decisões locais repetidas nos próximos slices.
+- Foram adicionados temas globais para `ListTile`, `Chip` e `DataTable`, preparando painéis, listas e tabelas para uma experiência mais consistente nos slices seguintes.
+- `TemaMedidas.alturaControle` foi ajustada para `42`, e os paddings de controle foram centralizados em `paddingControle` e `paddingControleCompacto`.
+- Não houve alteração em widgets da feature, ViewModel, domínio, repository, PDF, impressão, compartilhamento, SQLite ou APIs públicas.
+- Não houve alteração na regra de ícones neste slice; a migração de `FaIcon` para ícones nativos permanece para os slices específicos.
+- Impacto em UI: sim, por alteração global de densidade, superfícies, bordas, sombras, estados interativos e controles.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 2/7 - Shell da PedidoPage
+- A `PedidoPage` continua sendo a tela inicial e agregadora única da feature `pedido_page`, sem criação de nova rota, nova Page ou feature paralela.
+- O shell visual foi modernizado sem alterar ViewModel, callbacks, serviços, persistência, formulário, tabela, cabeçalho, visualização ou dialogs internos.
+- A barra superior da `PedidoPage` passou a usar superfície do tema, título compacto, sem elevação, sem tint de rolagem e com divisor inferior sutil em `outlineVariant`, preservando o título visível `Pedido`.
+- A moldura do recibo deixou de envolver o `ReciboPedido` em um cartão amplo; agora usa apenas uma faixa de seção compacta com título `Recibo`, indicador primário, borda e sombra sutis, reduzindo peso visual e evitando encaixe excessivo de superfícies.
+- O `PedidoPageLayout` preserva rolagem vertical, `SafeArea`, largura máxima controlada e espaçamentos responsivos.
+- A largura máxima da área de trabalho foi ajustada para `1240`, com padding e espaçamento mais densos para leitura operacional.
+- Em larguras amplas, o `ResumoPedido` passa a ocupar uma coluna lateral de `340` px ao lado do recibo, funcionando como painel financeiro de consulta rápida.
+- Em larguras menores, a ordem vertical permanece:
+  - cabeçalho;
+  - recibo;
+  - resumo financeiro.
+- O layout recebeu `Scrollbar` para melhorar a leitura de área de trabalho em Desktop/Web sem alterar a estrutura dos widgets internos.
+- Não houve migração de ícones neste slice; nenhum ícone foi alterado no shell da Page.
+- Testes existentes da `PedidoPage` e do `PedidoPageLayout` continuaram válidos, sem necessidade de alteração.
+- Impacto em UI: sim, por modernização da moldura da tela, barra superior, densidade, largura útil e comportamento responsivo do resumo lateral.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 3/7 - Cabeçalho e editor
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O `CabecalhoApp` foi modernizado como superfície compacta de identificação empresarial, com padding reduzido, borda sutil, sombra mais leve e uso de `surfaceContainerLowest`.
+- A responsividade do cabeçalho foi preservada:
+  - desktop mantém identidade, contatos e edição na mesma linha;
+  - tablet mantém identidade e ação no topo, com contatos abaixo;
+  - mobile mantém ordem vertical com botão de edição expandido.
+- Dados e comportamento do cabeçalho foram preservados:
+  - nome da empresa;
+  - subtítulo;
+  - Instagram;
+  - WhatsApp;
+  - telefone;
+  - endereço;
+  - logo por asset, logo em base64 e fallback `SC`;
+  - feedback textual;
+  - callback de edição.
+- O `CabecalhoEditorDialog` foi mantido como editor do cabeçalho da própria `PedidoPage`, preservando campos, seleção de logo, remoção de logo, restauração padrão, salvamento assíncrono, estado de salvamento e mensagens de erro.
+- O editor passou a usar ícones nativos do Flutter para identidade, seções, campos comuns, salvar, selecionar logo e remover logo.
+- A regra de ícones deste slice ficou aplicada no cabeçalho e no editor:
+  - `FaIcon(FontAwesomeIcons.instagram)` permanece para Instagram;
+  - `FaIcon(FontAwesomeIcons.whatsapp)` permanece para WhatsApp;
+  - telefone, endereço, editar, identidade, empresa, contatos, salvar, logo e remover logo usam `Icon` com `Icons.*`.
+- Não houve alteração em ViewModel, repository, PDF, impressão, compartilhamento, SQLite, domínio, formulário, tabela, resumo, visualização ou painéis auxiliares.
+- Testes do cabeçalho foram atualizados para validar Instagram/WhatsApp com `FaIcon` e telefone/endereço/edição com `Icon`.
+- O teste da `PedidoPage` foi atualizado para validar que o editor do cabeçalho usa `Icons.badge_outlined` e `Icons.save_outlined`, deixando a auditoria global de `FaIcon` para o fechamento da modernização.
+- Impacto em UI: sim, por refinamento visual do cabeçalho, do diálogo de edição e pela migração dos ícones visíveis desta área.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 4/7 - Ações e formulário do recibo
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O `ReciboPedido` foi modernizado na área de comandos do recibo, mantendo os mesmos callbacks públicos para imprimir, compartilhar PDF e gerar PDF.
+- A barra `Ações do recibo` passou a ter leitura mais operacional, com cabeçalho compacto, superfície neutra, borda sutil e comandos agrupados para salvar, novo recibo, histórico, clientes, imprimir, gerar PDF e compartilhar.
+- Foram preservados os bloqueios e estados existentes:
+  - `salvando`;
+  - `carregando`;
+  - `carregandoClientes`;
+  - `imprimindoPdf`;
+  - `gerandoPdf`;
+  - `compartilhandoPdf`;
+  - modo somente leitura;
+  - mensagens de feedback, erro, impressão, PDF, compartilhamento, salvamento e cancelamento.
+- O `ReciboFormulario` foi modernizado como painel de preenchimento repetitivo, com superfície própria, título com ícone nativo e campos organizados no mesmo grid responsivo já existente.
+- A seção de visualização dentro do `ReciboPedido` recebeu a mesma linguagem de painel do formulário para manter alinhamento em largura ampla e evitar overflow em largura compacta.
+- Foram preservados os campos, chaves de teste, callbacks e conversões existentes:
+  - número do recibo;
+  - data de recebimento;
+  - data de entrega;
+  - cliente;
+  - telefone com `TelefoneInputFormatter`;
+  - valor de entrada convertido para centavos;
+  - observações;
+  - sincronização de texto sem perder foco durante digitação.
+- A regra de ícones deste slice ficou aplicada nos arquivos `ReciboPedido` e `ReciboFormulario`:
+  - ações do recibo usam `Icon` com `Icons.save_outlined`, `Icons.note_add_outlined`, `Icons.history_outlined`, `Icons.groups_outlined`, `Icons.print_outlined`, `Icons.picture_as_pdf_outlined` e `Icons.ios_share_outlined`;
+  - campos do formulário usam `Icon` com `Icons.tag_outlined`, `Icons.calendar_month_outlined`, `Icons.event_available_outlined`, `Icons.person_outline`, `Icons.call_outlined`, `Icons.payments_outlined` e `Icons.notes_outlined`;
+  - não restou `FaIcon` nem `FontAwesomeIcons` nesses dois arquivos.
+- Não houve alteração em cálculos, domínio, persistência, histórico, PDF, impressão, compartilhamento, ViewModel, APIs públicas de `ReciboPedido` ou `ReciboFormulario`, produtos/serviços, resumo, visualização ou painéis auxiliares.
+- Testes do `ReciboPedido` foram atualizados para validar os ícones nativos do formulário e da barra de ações.
+- Impacto em UI: sim, por refinamento visual da área operacional do recibo e migração dos ícones comuns para ícones nativos do Flutter.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 5/7 - Produtos, serviços e resumo
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O `ProdutosServicosTabela` foi modernizado como grade operacional de caixa, com superfície neutra, borda sutil, sombra leve, cabeçalho compacto e maior alinhamento visual com os painéis anteriores.
+- O `ProdutosServicosTabela` preserva `ListView.separated`, edição de quantidade, descrição e valor unitário, remoção de itens, adição manual e adição por Enter no campo de valor unitário.
+- A regra de ícones deste slice ficou aplicada no `ProdutosServicosTabela`:
+  - adicionar item usa `Icon(Icons.add)`;
+  - remover item usa `Icon(Icons.delete_outline)`;
+  - o título operacional usa `Icon(Icons.point_of_sale_outlined)`;
+  - não restou `FaIcon`, `FontAwesomeIcons` nem import de `font_awesome_flutter` nesse widget.
+- O `ResumoPedido` foi modernizado como painel denso de totais, com cabeçalho compacto, ícone nativo, menor padding e ícones nativos para total, entrada e saldo de entrega.
+- O `ResumoPedido` preserva os valores recebidos por parâmetro, o campo editável de entrada, a mensagem de erro, a conversão de entrada para centavos e a sincronização do texto sem perder foco durante digitação.
+- Não houve alteração em modelos, ViewModel, validações financeiras, repository, SQLite, PDF, impressão, compartilhamento, histórico ou regras de cálculo.
+- Testes do `ReciboPedido` foram atualizados para validar `Icons.add` e `Icons.delete_outline` na tabela, além de remover a dependência dos antigos ícones Font Awesome comuns.
+- Testes do `ResumoPedido` foram atualizados para validar os ícones nativos do painel financeiro.
+- Impacto em UI: sim, por refinamento visual localizado da tabela de itens e do painel financeiro, com migração dos ícones comuns para ícones nativos do Flutter.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 6/7 - Visualização e painéis auxiliares
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A `VisualizacaoRecibo` preserva a fidelidade aos dados do formulário:
+  - número, cliente, telefone, observações, datas, itens, total, entrada e saldo continuam renderizados a partir do `Recibo` recebido;
+  - a integração do `ReciboPedido` com `reciboEmEdicao` continua exibindo os dados digitados no formulário.
+- A regra de ícones deste slice ficou aplicada na visualização e nos painéis auxiliares:
+  - `FaIcon(FontAwesomeIcons.instagram)` permanece para Instagram;
+  - `FaIcon(FontAwesomeIcons.whatsapp)` permanece para WhatsApp;
+  - telefone e localização da visualização usam `Icon` com `Icons.call_outlined` e `Icons.location_on_outlined`;
+  - busca, fechar, carregar, duplicar, excluir, compartilhar, e-mail, PDF e salvar arquivo usam `Icon` com `Icons.*`.
+- `ClientesPainel` passou a usar ícones nativos para clientes, busca, fechar, nome, telefone, e-mail, cadastrar e item de cliente.
+- `HistoricoRecibosPainel` passou a usar ícones nativos para histórico, busca, limpar/fechar, carregar, duplicar e excluir.
+- `ReciboCompartilhamentoDialog` preserva as opções `E-mail`, `Compartilhar` e `Salvar arquivo`, sem alterar a opção retornada nem o payload de compartilhamento.
+- `ReciboPdfPreviewDialog` preserva `PdfPreview`, builder customizado de teste, ações de compartilhar/salvar e fechamento, trocando apenas os ícones visíveis por ícones nativos.
+- Não houve alteração em ViewModel, repository, SQLite, serviços de PDF, impressão, compartilhamento, payloads, domínio, cálculos ou APIs públicas.
+- Testes de `VisualizacaoRecibo`, `ClientesPainel` e `PedidoPage` foram atualizados para validar os ícones nativos deste slice e manter `FaIcon` apenas para Instagram e WhatsApp.
+- Impacto em UI: sim, por refinamento visual localizado da prévia do recibo, painéis auxiliares e dialogs, com ícones coerentes com Material 3 e a linguagem operacional dos slices anteriores.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização de layout - 2026-05-18 - Slice 7/7 - Auditoria final e validação
+- A `PedidoPage` permanece como tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page, feature paralela ou funcionalidade nova.
+- A modernização visual foi fechada mantendo o estilo de software de caixa empresarial:
+  - shell com barra superior compacta e área de trabalho responsiva;
+  - cabeçalho empresarial denso;
+  - ações do recibo agrupadas;
+  - formulário, tabela, resumo, visualização, painéis e dialogs com superfícies neutras, bordas sutis e ícones nativos para ações operacionais.
+- A auditoria final de ícones em `lib/features/pedido_page/presentation` e `test/features/pedido_page/presentation` confirmou que as referências a `FontAwesomeIcons` aparecem somente para:
+  - `FontAwesomeIcons.instagram`;
+  - `FontAwesomeIcons.whatsapp`.
+- `FaIcon` permanece somente nos pontos em que Instagram e WhatsApp são renderizados ou testados:
+  - `CabecalhoApp`;
+  - `CabecalhoEditorDialog`;
+  - `VisualizacaoRecibo`;
+  - testes de cabeçalho e visualização que validam esses ícones de marca.
+- Os testes do `ReciboPedido` deixaram de importar `font_awesome_flutter` e de referenciar ícones antigos em expectativas negativas; eles agora validam diretamente os ícones nativos aplicados.
+- A dependência `font_awesome_flutter` permanece no `pubspec.yaml` porque ainda é necessária para os ícones de marca permitidos.
+- Não houve alteração em ViewModel, domínio, repository, SQLite, geração de PDF, impressão, compartilhamento, payloads, callbacks públicos ou regras de negócio.
+- Responsividade final permanece coberta por testes de larguras representativas em `PedidoPageLayout`, `CabecalhoApp`, `ReciboPedido` e `ResumoPedido`.
+- Impacto em UI: não há nova direção visual neste fechamento; o impacto foi de consolidação, limpeza de testes e confirmação do contrato de ícones.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Revisão planejada de funcionalidade - 2026-05-18 - Moeda, clientes, PDF e rolagem
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O planejamento está registrado em `.codex/funcionalidade/funcionalidade-26-05-18-3.md` e foi dividido em 5 slices.
+- Campos monetários do recibo devem passar a usar digitação por centavos:
+  - `2` representa `0,02`;
+  - `23` representa `0,23`;
+  - `235` representa `2,35`;
+  - `2350` representa `23,50`.
+- A regra deve ser única para `ReciboFormulario`, `ResumoPedido` e `ProdutosServicosTabela`, mantendo centavos inteiros na ViewModel e no domínio.
+- Ao salvar, se o último item do recibo tiver descrição vazia e valor unitário `0,00`, ele deve ser removido antes da validação e da persistência.
+- A remoção automática não deve atingir itens intermediários nem itens finais que tenham descrição ou valor preenchido.
+- O campo `Cliente` do formulário deve pesquisar clientes durante a digitação e exibir sugestões estilo combobox.
+- Cada sugestão deve mostrar `Nome - Telefone - E-mail`, omitindo telefone ou e-mail quando não existirem.
+- A seleção de cliente deve reaproveitar a regra existente da `PedidoPageViewModel` para preencher nome, telefone e e-mail selecionado.
+- O painel `ClientesPainel` deve ser preservado como fluxo complementar de cadastro e gestão de clientes.
+- A linha de ações rápidas do recibo deve deixar de exibir `Imprimir` e `Compartilhar`.
+- A ação `Gerar PDF` passa a ser a entrada principal para a prévia.
+- `ReciboPdfPreviewDialog` deve concentrar as ações `Imprimir`, `Compartilhar`, `Salvar arquivo` e `Fechar`.
+- A impressão pela prévia deve reutilizar os bytes do PDF já gerados para a visualização.
+- O compartilhamento pela prévia deve preservar o fluxo genérico já existente com `ReciboCompartilhamentoService`.
+- `PedidoPageLayout` deve corrigir o uso de `Scrollbar` com `ScrollController` explícito compartilhado com o `SingleChildScrollView`, evitando a exceção de `ScrollPosition` ausente.
+- Cada slice que implementar parte deste planejamento deve atualizar este contrato com o resultado real aplicado e as validações executadas.

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/viewmodels/pedido_page_view_model.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/clientes_painel.dart';
@@ -38,7 +37,7 @@ class ReciboPedido extends StatelessWidget {
             onCompartilharPdf: onCompartilharPdf,
             onGerarPdf: onGerarPdf,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
               final layoutAmplo = constraints.maxWidth >= 1040;
@@ -61,7 +60,7 @@ class ReciboPedido extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     formulario,
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     visualizacao,
                   ],
                 );
@@ -71,13 +70,13 @@ class ReciboPedido extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 11, child: formulario),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 16),
                   Expanded(flex: 9, child: visualizacao),
                 ],
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           ProdutosServicosTabela(
             itens: recibo.itens,
             onAdicionarItem: () => viewModel.solicitarNovoItem(),
@@ -103,19 +102,41 @@ class _ReciboVisualizacaoSecao extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Visualização do Recibo',
-          style: textTheme.titleMedium?.copyWith(
-            color: colorScheme.secondary,
-            fontWeight: FontWeight.w800,
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.preview_outlined,
+                  size: 18,
+                  color: colorScheme.secondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Visualização do Recibo',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            VisualizacaoRecibo(recibo: recibo),
+          ],
         ),
-        const SizedBox(height: 12),
-        VisualizacaoRecibo(recibo: recibo),
-      ],
+      ),
     );
   }
 }
@@ -156,14 +177,31 @@ class _ReciboAcoes extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Ações do recibo',
-                  style: textTheme.labelLarge?.copyWith(
-                    color: colorScheme.secondary,
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      size: 18,
+                      color: colorScheme.secondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Ações do recibo',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.secondary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (somenteLeitura)
+                      Icon(
+                        Icons.lock_outline,
+                        size: 18,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -173,21 +211,21 @@ class _ReciboAcoes extends StatelessWidget {
                       onPressed: viewModel.salvando || somenteLeitura
                           ? null
                           : () async => viewModel.salvarRecibo(),
-                      icon: const FaIcon(FontAwesomeIcons.floppyDisk),
+                      icon: const Icon(Icons.save_outlined),
                       label: Text(
                         viewModel.salvando ? 'Salvando...' : 'Salvar',
                       ),
                     ),
                     OutlinedButton.icon(
                       onPressed: viewModel.iniciarNovoRecibo,
-                      icon: const FaIcon(FontAwesomeIcons.fileCirclePlus),
+                      icon: const Icon(Icons.note_add_outlined),
                       label: const Text('Novo recibo'),
                     ),
                     OutlinedButton.icon(
                       onPressed: viewModel.carregando
                           ? null
                           : () => _abrirHistorico(context),
-                      icon: const FaIcon(FontAwesomeIcons.clockRotateLeft),
+                      icon: const Icon(Icons.history_outlined),
                       label: const Text('Histórico'),
                     ),
                     OutlinedButton.icon(
@@ -195,7 +233,7 @@ class _ReciboAcoes extends StatelessWidget {
                       onPressed: viewModel.carregandoClientes
                           ? null
                           : () => _abrirClientes(context),
-                      icon: const FaIcon(FontAwesomeIcons.users),
+                      icon: const Icon(Icons.groups_outlined),
                       label: const Text('Clientes'),
                     ),
                     OutlinedButton.icon(
@@ -209,7 +247,7 @@ class _ReciboAcoes extends StatelessWidget {
                         foregroundColor: colorScheme.secondary,
                         side: BorderSide(color: colorScheme.secondary),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.print),
+                      icon: const Icon(Icons.print_outlined),
                       label: Text(
                         viewModel.imprimindoPdf ? 'Imprimindo...' : 'Imprimir',
                       ),
@@ -225,7 +263,7 @@ class _ReciboAcoes extends StatelessWidget {
                         foregroundColor: colorScheme.tertiary,
                         side: BorderSide(color: colorScheme.tertiary),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.filePdf),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(
                         viewModel.gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF',
                       ),
@@ -241,7 +279,7 @@ class _ReciboAcoes extends StatelessWidget {
                         foregroundColor: colorScheme.secondary,
                         side: BorderSide(color: colorScheme.outlineVariant),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.shareNodes),
+                      icon: const Icon(Icons.ios_share_outlined),
                       label: Text(
                         viewModel.compartilhandoPdf
                             ? 'Compartilhando...'

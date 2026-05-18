@@ -42,19 +42,19 @@ class CabecalhoApp extends StatelessWidget {
       label: 'Cabeçalho da empresa',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colorScheme.outlineVariant),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < _breakpointMobile) {
@@ -392,8 +392,8 @@ class _ContatosEmpresa extends StatelessWidget {
           texto: cabecalho.whatsapp,
         ),
         _ContatoItem(
-          icone: FaIcon(
-            FontAwesomeIcons.phone,
+          icone: Icon(
+            Icons.call_outlined,
             size: 18,
             color: colorScheme.onSurface,
           ),
@@ -401,8 +401,8 @@ class _ContatosEmpresa extends StatelessWidget {
           texto: cabecalho.telefone,
         ),
         _ContatoItem(
-          icone: FaIcon(
-            FontAwesomeIcons.locationDot,
+          icone: Icon(
+            Icons.location_on_outlined,
             size: 18,
             color: colorScheme.onSurface,
           ),
@@ -478,7 +478,7 @@ class _AcoesCabecalho extends StatelessWidget {
     final botaoEditar = OutlinedButton.icon(
       key: const ValueKey('pedido-page-editar-cabecalho'),
       onPressed: editarCabecalhoHabilitado ? onEditarCabecalho : null,
-      icon: const FaIcon(FontAwesomeIcons.penToSquare),
+      icon: const Icon(Icons.edit_outlined),
       label: const Text('Editar cabeçalho'),
     );
 

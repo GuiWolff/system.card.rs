@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
@@ -42,7 +41,7 @@ class ReciboPdfPreviewDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       title: Row(
         children: [
-          FaIcon(FontAwesomeIcons.filePdf, color: colorScheme.primary),
+          Icon(Icons.picture_as_pdf_outlined, color: colorScheme.primary),
           const SizedBox(width: 10),
           const Expanded(child: Text('Prévia do PDF')),
         ],
@@ -63,14 +62,14 @@ class ReciboPdfPreviewDialog extends StatelessWidget {
           TextButton.icon(
             key: const ValueKey('recibo-pdf-preview-compartilhar'),
             onPressed: () async => onCompartilharPdf?.call(),
-            icon: const FaIcon(FontAwesomeIcons.shareNodes, size: 16),
+            icon: const Icon(Icons.ios_share_outlined, size: 16),
             label: const Text('Compartilhar'),
           ),
         if (onSalvarArquivo != null)
           TextButton.icon(
             key: const ValueKey('recibo-pdf-preview-salvar-arquivo'),
             onPressed: () async => onSalvarArquivo?.call(),
-            icon: const FaIcon(FontAwesomeIcons.fileArrowDown, size: 16),
+            icon: const Icon(Icons.save_alt_outlined, size: 16),
             label: const Text('Salvar arquivo'),
           ),
         TextButton(

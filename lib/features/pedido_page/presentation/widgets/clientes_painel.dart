@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/cliente.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart';
 
@@ -70,7 +69,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
         children: [
           Row(
             children: [
-              FaIcon(FontAwesomeIcons.user, color: colorScheme.primary),
+              Icon(Icons.groups_outlined, color: colorScheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -84,7 +83,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
               IconButton(
                 tooltip: 'Fechar clientes',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const FaIcon(FontAwesomeIcons.xmark),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
@@ -94,7 +93,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
             controller: _buscaController,
             decoration: const InputDecoration(
               labelText: 'Pesquisar por nome, telefone ou e-mail',
-              prefixIcon: FaIcon(FontAwesomeIcons.magnifyingGlass),
+              prefixIcon: Icon(Icons.search),
             ),
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.search,
@@ -132,7 +131,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           controller: _nomeController,
                           decoration: const InputDecoration(
                             labelText: 'Nome do cliente',
-                            prefixIcon: FaIcon(FontAwesomeIcons.user),
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           textInputAction: TextInputAction.next,
                         ),
@@ -144,7 +143,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           controller: _telefoneController,
                           decoration: const InputDecoration(
                             labelText: 'Telefone',
-                            prefixIcon: FaIcon(FontAwesomeIcons.phone),
+                            prefixIcon: Icon(Icons.call_outlined),
                           ),
                           keyboardType: TextInputType.phone,
                           inputFormatters: const [TelefoneInputFormatter()],
@@ -158,7 +157,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: 'E-mail',
-                            prefixIcon: FaIcon(FontAwesomeIcons.envelope),
+                            prefixIcon: Icon(Icons.mail_outline),
                           ),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.done,
@@ -172,7 +171,7 @@ class _ClientesPainelState extends State<ClientesPainel> {
                           backgroundColor: colorScheme.tertiary,
                           foregroundColor: colorScheme.onTertiary,
                         ),
-                        icon: const FaIcon(FontAwesomeIcons.userPlus),
+                        icon: const Icon(Icons.person_add_alt_1_outlined),
                         label: Text(
                           widget.salvando ? 'Salvando...' : 'Cadastrar',
                         ),
@@ -243,7 +242,7 @@ class _ListaClientes extends StatelessWidget {
         final cliente = clientes[index];
         return ListTile(
           key: ValueKey('cliente-${cliente.id ?? index}'),
-          leading: FaIcon(FontAwesomeIcons.user, color: colorScheme.secondary),
+          leading: Icon(Icons.person_outline, color: colorScheme.secondary),
           title: Text(cliente.nome),
           subtitle: Text(_clienteResumo(cliente)),
           trailing: TextButton(
