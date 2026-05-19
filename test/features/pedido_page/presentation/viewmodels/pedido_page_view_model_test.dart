@@ -619,6 +619,50 @@ void main() {
     },
   );
 
+  test('PedidoPageViewModel atualiza e exclui clientes cadastrados', () async {
+    final repository = _ClienteRepositoryFake();
+    final salvo = await repository.salvar(
+      Cliente(
+        nome: 'Ana Pereira',
+        telefone: '(51) 9 1111-1111',
+        email: 'ana@exemplo.com',
+      ),
+    );
+    await repository.salvar(
+      Cliente(nome: 'Bruno Costa', telefone: '51922222222'),
+    );
+    final viewModel = PedidoPageViewModel(clienteRepository: repository);
+    addTearDown(viewModel.dispose);
+
+    viewModel.selecionarCliente(salvo);
+    await viewModel.listarClientes();
+
+    final atualizado = await viewModel.atualizarClienteCadastrado(
+      cliente: salvo,
+      nome: 'Ana Lima',
+      telefone: '(51) 9 4444-4444',
+      email: 'lima@exemplo.com',
+    );
+
+    expect(atualizado, isTrue);
+    expect(viewModel.feedbackClientes, 'Cliente atualizado.');
+    expect(repository.salvos.first.nome, 'Ana Lima');
+    expect(repository.salvos.first.telefone, '51944444444');
+    expect(repository.salvos.first.email, 'lima@exemplo.com');
+    expect(viewModel.reciboEmEdicao.cliente, 'Ana Lima');
+    expect(viewModel.reciboEmEdicao.telefone, '51944444444');
+    expect(viewModel.emailClienteSelecionado, 'lima@exemplo.com');
+
+    final excluido = await viewModel.excluirClienteCadastrado(
+      repository.salvos.first,
+    );
+
+    expect(excluido, isTrue);
+    expect(viewModel.feedbackClientes, 'Cliente excluído.');
+    expect(repository.salvos.map((cliente) => cliente.nome), ['Bruno Costa']);
+    expect(viewModel.clientes.map((cliente) => cliente.nome), ['Bruno Costa']);
+  });
+
   test(
     'PedidoPageViewModel expõe erro claro para telefone duplicado',
     () async {

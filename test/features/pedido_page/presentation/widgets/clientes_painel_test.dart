@@ -119,10 +119,131 @@ void main() {
     );
     expect(find.text('Nenhum cliente encontrado.'), findsOneWidget);
   });
+
+  testWidgets('ClientesPainel edita e exclui cliente', (
+    WidgetTester tester,
+  ) async {
+    Cliente? clienteAtualizado;
+    Cliente? clienteExcluido;
+    String nomeAtualizado = '';
+    String telefoneAtualizado = '';
+    String emailAtualizado = '';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 560,
+            child: ClientesPainel(
+              clientes: [
+                Cliente(
+                  id: 7,
+                  nome: 'Ana Pereira',
+                  telefone: '51911111111',
+                  email: 'ana@exemplo.com',
+                ),
+              ],
+              carregando: false,
+              salvando: false,
+              erro: null,
+              feedback: null,
+              onPesquisar: (_) {},
+              onCadastrar:
+                  ({required nome, required telefone, email = ''}) async {},
+              onAtualizar:
+                  ({
+                    required cliente,
+                    required nome,
+                    required telefone,
+                    email = '',
+                  }) async {
+                    clienteAtualizado = cliente;
+                    nomeAtualizado = nome;
+                    telefoneAtualizado = telefone;
+                    emailAtualizado = email;
+                    return true;
+                  },
+              onExcluir: (cliente) async {
+                clienteExcluido = cliente;
+                return true;
+              },
+              onSelecionar: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(_findIcon(Icons.edit_outlined), findsOneWidget);
+    expect(_findIcon(Icons.delete_outline), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('cliente-editar-7')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Editando cliente'), findsOneWidget);
+    expect(
+      _textoDoCampo(tester, find.byKey(const ValueKey('clientes-painel-nome'))),
+      'Ana Pereira',
+    );
+    expect(
+      _textoDoCampo(
+        tester,
+        find.byKey(const ValueKey('clientes-painel-telefone')),
+      ),
+      '(51) 9 1111-1111',
+    );
+    expect(
+      _textoDoCampo(
+        tester,
+        find.byKey(const ValueKey('clientes-painel-email')),
+      ),
+      'ana@exemplo.com',
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('clientes-painel-nome')),
+      'Ana Lima',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('clientes-painel-telefone')),
+      '51944444444',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('clientes-painel-email')),
+      'lima@exemplo.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('clientes-painel-cadastrar')));
+    await tester.pumpAndSettle();
+
+    expect(clienteAtualizado?.id, 7);
+    expect(nomeAtualizado, 'Ana Lima');
+    expect(telefoneAtualizado, '(51) 9 4444-4444');
+    expect(emailAtualizado, 'lima@exemplo.com');
+    expect(find.text('Editando cliente'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('cliente-excluir-7')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Excluir cliente'), findsOneWidget);
+    expect(find.text('Deseja excluir o cliente Ana Pereira?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Excluir'));
+    await tester.pumpAndSettle();
+
+    expect(clienteExcluido?.id, 7);
+  });
 }
 
 Finder _findIcon(IconData icon) {
   return find.byWidgetPredicate(
     (widget) => widget is Icon && widget.icon == icon,
   );
+}
+
+String _textoDoCampo(WidgetTester tester, Finder campo) {
+  final editableText = tester.widget<EditableText>(
+    find.descendant(of: campo, matching: find.byType(EditableText)),
+  );
+
+  return editableText.controller.text;
 }

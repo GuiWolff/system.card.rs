@@ -72,8 +72,8 @@ class ReciboPedido extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 11, child: formulario),
-                  /*const SizedBox(width: 16),
-                  Expanded(flex: 9, child: visualizacao),*/
+                  const SizedBox(width: 16),
+                  Expanded(flex: 9, child: visualizacao),
                 ],
               );
             },
@@ -417,6 +417,8 @@ class _ReciboAcoes extends StatelessWidget {
                   feedback: viewModel.feedbackClientes,
                   onPesquisar: viewModel.pesquisarClientes,
                   onCadastrar: viewModel.salvarCliente,
+                  onAtualizar: viewModel.atualizarClienteCadastrado,
+                  onExcluir: viewModel.excluirClienteCadastrado,
                   onSelecionar: (cliente) {
                     viewModel.selecionarCliente(cliente);
                     Navigator.of(dialogContext).pop();

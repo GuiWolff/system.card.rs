@@ -730,6 +730,7 @@ class PedidoPageViewModel {
 
   Future<void> listarClientes() async {
     _pesquisaClientesVersao++;
+    _termoBuscaClientes.value = '';
     await _executarComClienteRepository((repository) async {
       _carregandoClientes.value = true;
       _clientes.value = await repository.listar();
@@ -779,11 +780,56 @@ class PedidoPageViewModel {
       _feedbackClientes.value = 'Cliente salvo.';
       _selecionarClienteNoRecibo(clienteSalvo);
 
-      final termo = _termoBuscaClientes.value;
-      _clientes.value = termo.trim().isEmpty
-          ? await repository.listar()
-          : await repository.pesquisar(termo);
+      await _recarregarClientes(repository);
     });
+  }
+
+  Future<bool> atualizarClienteCadastrado({
+    required Cliente cliente,
+    required String nome,
+    required String telefone,
+    String email = '',
+  }) async {
+    var atualizado = false;
+    _pesquisaClientesVersao++;
+    await _executarComClienteRepository((repository) async {
+      _salvandoCliente.value = true;
+      final clienteAtualizado = await repository.atualizar(
+        cliente.copyWith(nome: nome, telefone: telefone, email: email),
+      );
+      _feedbackClientes.value = 'Cliente atualizado.';
+      await _recarregarClientes(repository);
+      atualizado = true;
+
+      if (!_reciboSomenteLeitura.value &&
+          reciboEmEdicao.cliente == cliente.nome &&
+          reciboEmEdicao.telefone == cliente.telefone) {
+        _selecionarClienteNoRecibo(clienteAtualizado);
+      }
+    });
+
+    return atualizado;
+  }
+
+  Future<bool> excluirClienteCadastrado(Cliente cliente) async {
+    final id = cliente.id;
+    if (id == null) {
+      _erroClientes.value = 'Cliente não encontrado para exclusão.';
+      _feedbackClientes.value = null;
+      return false;
+    }
+
+    var excluido = false;
+    _pesquisaClientesVersao++;
+    await _executarComClienteRepository((repository) async {
+      _carregandoClientes.value = true;
+      await repository.excluir(id);
+      _feedbackClientes.value = 'Cliente excluído.';
+      await _recarregarClientes(repository);
+      excluido = true;
+    });
+
+    return excluido;
   }
 
   void selecionarCliente(Cliente cliente) {
@@ -948,6 +994,13 @@ class PedidoPageViewModel {
       _carregandoClientes.value = false;
       _salvandoCliente.value = false;
     }
+  }
+
+  Future<void> _recarregarClientes(ClienteRepository repository) async {
+    final termo = _termoBuscaClientes.value;
+    _clientes.value = termo.trim().isEmpty
+        ? await repository.listar()
+        : await repository.pesquisar(termo);
   }
 
   void _selecionarClienteNoRecibo(Cliente cliente) {
