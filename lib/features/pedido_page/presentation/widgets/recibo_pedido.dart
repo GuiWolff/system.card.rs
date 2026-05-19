@@ -22,6 +22,8 @@ class ReciboPedido extends StatelessWidget {
   final Future<void> Function()? onCompartilharPdf;
   final Future<void> Function()? onGerarPdf;
 
+  static const double _larguraMinimaLayoutLateral = 840;
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -35,7 +37,8 @@ class ReciboPedido extends StatelessWidget {
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
-              final layoutAmplo = constraints.maxWidth >= 1040;
+              final layoutLateral =
+                  constraints.maxWidth >= _larguraMinimaLayoutLateral;
               final formulario = ReciboFormulario(
                 recibo: recibo,
                 valorEntradaFormatado: viewModel.valorEntradaFormatado,
@@ -54,7 +57,7 @@ class ReciboPedido extends StatelessWidget {
               );
               final visualizacao = _ReciboVisualizacaoSecao(recibo: recibo);
 
-              if (!layoutAmplo) {
+              if (!layoutLateral) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -69,8 +72,8 @@ class ReciboPedido extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 11, child: formulario),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 9, child: visualizacao),
+                  /*const SizedBox(width: 16),
+                  Expanded(flex: 9, child: visualizacao),*/
                 ],
               );
             },

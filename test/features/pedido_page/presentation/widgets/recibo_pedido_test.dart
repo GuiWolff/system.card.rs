@@ -355,7 +355,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.physicalSize = const Size(880, 900);
       tester.view.devicePixelRatio = 1;
 
       final viewModel = PedidoPageViewModel();
