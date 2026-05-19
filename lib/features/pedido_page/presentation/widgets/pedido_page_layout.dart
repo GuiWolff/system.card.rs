@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class PedidoPageLayout extends StatelessWidget {
+class PedidoPageLayout extends StatefulWidget {
   const PedidoPageLayout({
     required this.cabecalho,
     required this.recibo,
@@ -21,19 +21,36 @@ class PedidoPageLayout extends StatelessWidget {
   static const double _espacamentoCompacto = 12;
 
   @override
+  State<PedidoPageLayout> createState() => _PedidoPageLayoutState();
+}
+
+class _PedidoPageLayoutState extends State<PedidoPageLayout> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompacto = constraints.maxWidth < 720;
         final usarResumoLateral =
-            constraints.maxWidth >= _breakpointResumoLateral;
-        final paddingHorizontal = isCompacto ? _paddingCompacto : _paddingAmplo;
+            constraints.maxWidth >= PedidoPageLayout._breakpointResumoLateral;
+        final paddingHorizontal = isCompacto
+            ? PedidoPageLayout._paddingCompacto
+            : PedidoPageLayout._paddingAmplo;
         final espacamento = isCompacto
-            ? _espacamentoCompacto
-            : _espacamentoAmplo;
+            ? PedidoPageLayout._espacamentoCompacto
+            : PedidoPageLayout._espacamentoAmplo;
         final colorScheme = Theme.of(context).colorScheme;
         final paddingTopo = isCompacto ? 12.0 : 20.0;
-        final paddingRodape = isCompacto ? _paddingCompacto : _paddingAmplo;
+        final paddingRodape = isCompacto
+            ? PedidoPageLayout._paddingCompacto
+            : PedidoPageLayout._paddingAmplo;
         final alturaMinima =
             (constraints.maxHeight - paddingTopo - paddingRodape)
                 .clamp(0.0, double.infinity)
@@ -44,7 +61,10 @@ class PedidoPageLayout extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Scrollbar(
+              controller: _scrollController,
               child: SingleChildScrollView(
+                controller: _scrollController,
+                primary: false,
                 padding: EdgeInsets.fromLTRB(
                   paddingHorizontal,
                   paddingTopo,
@@ -56,15 +76,16 @@ class PedidoPageLayout extends StatelessWidget {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(
-                        maxWidth: _larguraMaxima,
+                        maxWidth: PedidoPageLayout._larguraMaxima,
                       ),
                       child: _PedidoWorkspace(
-                        cabecalho: cabecalho,
-                        recibo: recibo,
-                        resumo: resumo,
+                        cabecalho: widget.cabecalho,
+                        recibo: widget.recibo,
+                        resumo: widget.resumo,
                         espacamento: espacamento,
                         usarResumoLateral: usarResumoLateral,
-                        larguraResumoLateral: _larguraResumoLateral,
+                        larguraResumoLateral:
+                            PedidoPageLayout._larguraResumoLateral,
                       ),
                     ),
                   ),

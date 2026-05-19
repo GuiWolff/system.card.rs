@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:system_card_rs/features/pedido_page/domain/models/cliente.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/recibo.dart';
+import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/monetario_input_formatter.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/telefone_input_formatter.dart';
 
 class ReciboFormulario extends StatelessWidget {
@@ -11,9 +15,13 @@ class ReciboFormulario extends StatelessWidget {
     required this.onDataRecebimentoChanged,
     required this.onDataEntregaChanged,
     required this.onClienteChanged,
+    required this.onPesquisarCliente,
+    required this.onClienteSelecionado,
     required this.onTelefoneChanged,
     required this.onValorEntradaChanged,
     required this.onObservacoesChanged,
+    this.clientesSugeridos = const <Cliente>[],
+    this.carregandoClientes = false,
     this.somenteLeitura = false,
     super.key,
   });
@@ -24,9 +32,13 @@ class ReciboFormulario extends StatelessWidget {
   final ValueChanged<DateTime> onDataRecebimentoChanged;
   final ValueChanged<DateTime> onDataEntregaChanged;
   final ValueChanged<String> onClienteChanged;
+  final Future<void> Function(String termo) onPesquisarCliente;
+  final ValueChanged<Cliente> onClienteSelecionado;
   final ValueChanged<String> onTelefoneChanged;
   final ValueChanged<int> onValorEntradaChanged;
   final ValueChanged<String> onObservacoesChanged;
+  final List<Cliente> clientesSugeridos;
+  final bool carregandoClientes;
   final bool somenteLeitura;
 
   @override
@@ -36,7 +48,7 @@ class ReciboFormulario extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
@@ -127,14 +139,18 @@ class ReciboFormulario extends StatelessWidget {
                       },
                       textInputAction: TextInputAction.next,
                     ),
-                    _CampoFormulario(
+                    _CampoClienteFormulario(
                       chave: 'recibo-formulario-cliente',
                       largura: larguraCampo,
                       label: 'Cliente',
                       valorInicial: recibo.cliente,
                       prefixIcon: Icons.person_outline,
                       somenteLeitura: somenteLeitura,
+                      clientesSugeridos: clientesSugeridos,
+                      carregandoClientes: carregandoClientes,
                       onChanged: onClienteChanged,
+                      onPesquisar: onPesquisarCliente,
+                      onSelecionar: onClienteSelecionado,
                       textInputAction: TextInputAction.next,
                     ),
                     _CampoFormulario(
@@ -163,12 +179,11 @@ class ReciboFormulario extends StatelessWidget {
                         decimal: true,
                       ),
                       prefixIcon: Icons.payments_outlined,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-                      ],
+                      inputFormatters: const [MonetarioInputFormatter()],
                       somenteLeitura: somenteLeitura,
-                      onChanged: (valor) =>
-                          onValorEntradaChanged(_converterMoeda(valor)),
+                      onChanged: (valor) => onValorEntradaChanged(
+                        MonetarioInputFormatter.converterParaCentavos(valor),
+                      ),
                       textInputAction: TextInputAction.next,
                     ),
                     _CampoFormulario(
@@ -222,20 +237,232 @@ class ReciboFormulario extends StatelessWidget {
 
     return data;
   }
+}
 
-  static int _converterMoeda(String valor) {
-    final semEspacos = valor.trim().replaceAll('R\$', '').replaceAll(' ', '');
-    if (semEspacos.isEmpty) {
-      return 0;
+class _CampoClienteFormulario extends StatefulWidget {
+  const _CampoClienteFormulario({
+    required this.chave,
+    required this.largura,
+    required this.label,
+    required this.valorInicial,
+    required this.onChanged,
+    required this.onPesquisar,
+    required this.onSelecionar,
+    required this.clientesSugeridos,
+    required this.carregandoClientes,
+    required this.somenteLeitura,
+    this.prefixIcon,
+    this.textInputAction,
+  });
+
+  final String chave;
+  final double largura;
+  final String label;
+  final String valorInicial;
+  final ValueChanged<String> onChanged;
+  final Future<void> Function(String termo) onPesquisar;
+  final ValueChanged<Cliente> onSelecionar;
+  final List<Cliente> clientesSugeridos;
+  final bool carregandoClientes;
+  final bool somenteLeitura;
+  final IconData? prefixIcon;
+  final TextInputAction? textInputAction;
+
+  @override
+  State<_CampoClienteFormulario> createState() =>
+      _CampoClienteFormularioState();
+}
+
+class _CampoClienteFormularioState extends State<_CampoClienteFormulario> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _exibirSugestoes = false;
+
+  bool get _deveExibirSugestoes =>
+      _exibirSugestoes &&
+      !widget.somenteLeitura &&
+      _focusNode.hasFocus &&
+      _controller.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.valorInicial);
+    _focusNode = FocusNode()..addListener(_aoAlterarFoco);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CampoClienteFormulario oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.valorInicial != oldWidget.valorInicial && !_focusNode.hasFocus) {
+      _sincronizarTexto(widget.valorInicial);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_aoAlterarFoco);
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final sugestoes = _sugestoesFiltradas;
+
+    return SizedBox(
+      width: widget.largura,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            key: ValueKey(widget.chave),
+            controller: _controller,
+            focusNode: _focusNode,
+            decoration: InputDecoration(
+              labelText: widget.label,
+              prefixIcon: widget.prefixIcon == null
+                  ? null
+                  : Icon(widget.prefixIcon),
+              suffixIcon: widget.carregandoClientes && _deveExibirSugestoes
+                  ? const Center(
+                      child: SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+            ),
+            textInputAction: widget.textInputAction,
+            readOnly: widget.somenteLeitura,
+            enabled: !widget.somenteLeitura,
+            onChanged: widget.somenteLeitura ? null : _aoAlterarTexto,
+          ),
+          if (_deveExibirSugestoes && sugestoes.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 176),
+                child: ListView.separated(
+                  key: const ValueKey('recibo-formulario-cliente-sugestoes'),
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: sugestoes.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: colorScheme.outlineVariant),
+                  itemBuilder: (context, index) {
+                    final cliente = sugestoes[index];
+                    return InkWell(
+                      key: ValueKey(
+                        'recibo-formulario-cliente-sugestao-$index',
+                      ),
+                      onTap: () => _selecionarCliente(cliente),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          _formatarCliente(cliente),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _aoAlterarFoco() {
+    if (!mounted) {
+      return;
     }
 
-    final normalizado = semEspacos.replaceAll('.', '').replaceAll(',', '.');
-    final valorDecimal = double.tryParse(normalizado);
-    if (valorDecimal == null) {
-      return 0;
+    setState(() {
+      _exibirSugestoes = _focusNode.hasFocus;
+    });
+  }
+
+  void _aoAlterarTexto(String valor) {
+    setState(() {
+      _exibirSugestoes = true;
+    });
+    widget.onChanged(valor);
+    unawaited(widget.onPesquisar(valor));
+  }
+
+  void _selecionarCliente(Cliente cliente) {
+    _sincronizarTexto(cliente.nome);
+    setState(() {
+      _exibirSugestoes = false;
+    });
+    _focusNode.unfocus();
+    widget.onSelecionar(cliente);
+  }
+
+  void _sincronizarTexto(String texto) {
+    if (_controller.text == texto) {
+      return;
     }
 
-    return (valorDecimal * 100).round();
+    _controller.value = TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+
+  static String _formatarCliente(Cliente cliente) {
+    final partes = <String>[cliente.nome];
+    final telefone = TelefoneInputFormatter.formatar(cliente.telefone);
+    if (telefone.isNotEmpty) {
+      partes.add(telefone);
+    }
+    if (cliente.email.isNotEmpty) {
+      partes.add(cliente.email);
+    }
+
+    return partes.join(' - ');
+  }
+
+  List<Cliente> get _sugestoesFiltradas {
+    final termo = _controller.text.trim();
+    if (termo.isEmpty) {
+      return const <Cliente>[];
+    }
+
+    final termoTexto = termo.toLowerCase();
+    final termoTelefone = Cliente.normalizarTelefone(termo);
+    return widget.clientesSugeridos
+        .where(
+          (cliente) =>
+              cliente.nome.toLowerCase().contains(termoTexto) ||
+              cliente.email.toLowerCase().contains(termoTexto) ||
+              (termoTelefone.isNotEmpty &&
+                  cliente.telefone.contains(termoTelefone)),
+        )
+        .take(6)
+        .toList(growable: false);
   }
 }
 

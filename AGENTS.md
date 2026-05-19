@@ -117,12 +117,12 @@ Antes de finalizar:
 
 ### Variáveis principais
 
-- `primaria` : #f7900a
+- `primaria` : #1C4779
     - Representa a cor principal da identidade visual aplicada ao texto.
     - Deve ser usada quando o texto precisa comunicar o estilo principal da interface.
     - Exemplo de uso: títulos, destaques institucionais e textos que devem seguir a cor principal do tema.
 
-- `destaque` : #0c78ce
+- `destaque` : #F28C28
     - Representa a cor de destaque.
     - Deve ser usada em textos que precisam chamar atenção visual sem necessariamente usar a cor principal.
     - Exemplo de uso: subtítulos, números importantes, indicadores e pontos de atenção visual.

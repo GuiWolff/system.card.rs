@@ -153,7 +153,7 @@ void main() {
     );
   });
 
-  testWidgets('PedidoPage imprime o mesmo PDF pelo recibo', (
+  testWidgets('PedidoPage imprime o PDF já gerado pela prévia', (
     WidgetTester tester,
   ) async {
     final viewModel = PedidoPageViewModel();
@@ -169,14 +169,17 @@ void main() {
           viewModel: viewModel,
           reciboPdfService: pdfService,
           reciboImpressaoService: impressaoService,
+          reciboPdfPreviewBuilder: _previewPdfTeste,
         ),
       ),
     );
 
-    final botaoImprimir = find.widgetWithText(OutlinedButton, 'Imprimir');
-    await tester.ensureVisible(botaoImprimir);
+    final botaoGerarPdf = find.widgetWithText(OutlinedButton, 'Gerar PDF');
+    await tester.ensureVisible(botaoGerarPdf);
     await tester.pumpAndSettle();
-    await tester.tap(botaoImprimir);
+    await tester.tap(botaoGerarPdf);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('recibo-pdf-preview-imprimir')));
     await tester.pumpAndSettle();
 
     expect(pdfService.chamadas, 1);
@@ -187,7 +190,7 @@ void main() {
     expect(find.text('Recibo enviado para impressão.'), findsOneWidget);
   });
 
-  testWidgets('PedidoPage expõe erro quando a impressão falha', (
+  testWidgets('PedidoPage expõe erro quando a impressão pela prévia falha', (
     WidgetTester tester,
   ) async {
     final viewModel = PedidoPageViewModel();
@@ -202,14 +205,17 @@ void main() {
           viewModel: viewModel,
           reciboPdfService: pdfService,
           reciboImpressaoService: impressaoService,
+          reciboPdfPreviewBuilder: _previewPdfTeste,
         ),
       ),
     );
 
-    final botaoImprimir = find.widgetWithText(OutlinedButton, 'Imprimir');
-    await tester.ensureVisible(botaoImprimir);
+    final botaoGerarPdf = find.widgetWithText(OutlinedButton, 'Gerar PDF');
+    await tester.ensureVisible(botaoGerarPdf);
     await tester.pumpAndSettle();
-    await tester.tap(botaoImprimir);
+    await tester.tap(botaoGerarPdf);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('recibo-pdf-preview-imprimir')));
     await tester.pumpAndSettle();
 
     expect(viewModel.imprimindoPdf, isFalse);
@@ -226,204 +232,46 @@ void main() {
     );
   });
 
-  testWidgets('PedidoPage abre popup de compartilhamento do PDF', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-
-    await tester.pumpWidget(
-      MaterialApp(home: PedidoPage(viewModel: viewModel)),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('Compartilhar recibo'), findsOneWidget);
-    final dialog = find.byType(AlertDialog);
-    expect(
-      find.descendant(of: dialog, matching: find.text('E-mail')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('Compartilhar')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('WhatsApp')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('Salvar arquivo')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('recibo-compartilhar-generico')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('recibo-compartilhar-whatsapp')),
-      findsNothing,
-    );
-    expect(_findIcon(Icons.ios_share_outlined), findsWidgets);
-    expect(_findIcon(Icons.mail_outline), findsWidgets);
-    expect(_findIcon(Icons.save_alt_outlined), findsWidgets);
-  });
-
-  testWidgets('PedidoPage compartilha PDF por e-mail com serviço fake', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-    viewModel.selecionarCliente(
-      Cliente(
-        nome: 'Cliente PDF',
-        telefone: '51999990000',
-        email: 'cliente@exemplo.com',
-      ),
-    );
-    final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45, 49]);
-    final pdfService = _ReciboPdfServiceFake(pdfBytes);
-    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PedidoPage(
-          viewModel: viewModel,
-          reciboPdfService: pdfService,
-          reciboCompartilhamentoService: compartilhamentoService,
-        ),
-      ),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('E-mail'));
-    await tester.pumpAndSettle();
-
-    expect(pdfService.chamadas, 1);
-    expect(compartilhamentoService.destino, 'email');
-    expect(compartilhamentoService.destinatarioEmail, 'cliente@exemplo.com');
-    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
-    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
-    expect(viewModel.compartilhandoPdf, isFalse);
-    expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
-    expect(
-      find.text(
-        'Compartilhamento por e-mail aberto pela folha do sistema. '
-        'Destinatário sugerido: cliente@exemplo.com.',
-      ),
-      findsOneWidget,
-    );
-  });
-
   testWidgets(
-    'PedidoPage compartilha PDF pelo canal genérico com serviço fake',
+    'PedidoPage não exibe imprimir nem compartilhar nas ações rápidas',
     (WidgetTester tester) async {
       final viewModel = PedidoPageViewModel();
       addTearDown(viewModel.dispose);
-      _preencherReciboParaPdf(viewModel);
-      final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45, 50]);
-      final pdfService = _ReciboPdfServiceFake(pdfBytes);
-      final compartilhamentoService = _ReciboCompartilhamentoServiceFake(
-        resultado: const ReciboCompartilhamentoResultado(
-          status: ReciboCompartilhamentoStatus.concluido,
-          mensagem: 'Recibo enviado para compartilhamento.',
-        ),
-      );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: PedidoPage(
-            viewModel: viewModel,
-            reciboPdfService: pdfService,
-            reciboCompartilhamentoService: compartilhamentoService,
-          ),
-        ),
+        MaterialApp(home: PedidoPage(viewModel: viewModel)),
       );
 
-      final botaoCompartilhar = find.widgetWithText(
-        OutlinedButton,
-        'Compartilhar',
-      );
-      await tester.ensureVisible(botaoCompartilhar);
-      await tester.pumpAndSettle();
-      await tester.tap(botaoCompartilhar);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('recibo-compartilhar-generico')),
-      );
-      await tester.pumpAndSettle();
+      final painelAcoes = find
+          .ancestor(
+            of: find.text('Ações do recibo'),
+            matching: find.byType(DecoratedBox),
+          )
+          .first;
 
-      expect(pdfService.chamadas, 1);
-      expect(compartilhamentoService.destino, 'compartilhar');
-      expect(compartilhamentoService.destinatarioEmail, isNull);
-      expect(compartilhamentoService.pdfBytes, same(pdfBytes));
-      expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
-      expect(viewModel.compartilhandoPdf, isFalse);
-      expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
       expect(
-        find.text('Recibo enviado para compartilhamento.'),
+        find.descendant(
+          of: painelAcoes,
+          matching: find.widgetWithText(OutlinedButton, 'Imprimir'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: painelAcoes,
+          matching: find.widgetWithText(OutlinedButton, 'Compartilhar'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: painelAcoes,
+          matching: find.widgetWithText(OutlinedButton, 'Gerar PDF'),
+        ),
         findsOneWidget,
       );
     },
   );
-
-  testWidgets('PedidoPage salva PDF e trata cancelamento do seletor', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-    final pdfService = _ReciboPdfServiceFake(Uint8List.fromList([1, 2, 3]));
-    final compartilhamentoService = _ReciboCompartilhamentoServiceFake(
-      resultado: const ReciboCompartilhamentoResultado(
-        status: ReciboCompartilhamentoStatus.cancelado,
-        mensagem: 'Salvamento cancelado.',
-      ),
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PedidoPage(
-          viewModel: viewModel,
-          reciboPdfService: pdfService,
-          reciboCompartilhamentoService: compartilhamentoService,
-        ),
-      ),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar arquivo'));
-    await tester.pumpAndSettle();
-
-    expect(compartilhamentoService.destino, 'salvar');
-    expect(viewModel.compartilhandoPdf, isFalse);
-    expect(viewModel.ultimaAcaoRecibo, 'compartilhamento-cancelado');
-    expect(find.text('Compartilhamento cancelado.'), findsOneWidget);
-  });
 
   testWidgets('PedidoPage abre AlertDialog de PDF pelo recibo', (
     WidgetTester tester,
@@ -450,6 +298,10 @@ void main() {
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('Prévia do PDF'), findsOneWidget);
     expect(find.textContaining('recibo-0042.pdf'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('recibo-pdf-preview-imprimir')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('recibo-pdf-preview-compartilhar')),
       findsOneWidget,
@@ -569,140 +421,6 @@ void main() {
 
     expect(find.byType(AlertDialog), findsNothing);
     expect(viewModel.erro, 'O número do recibo é obrigatório.');
-  });
-
-  testWidgets('PedidoPage abre popup e compartilha PDF por e-mail', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-    final pdfBytes = Uint8List.fromList([37, 80, 68, 70]);
-    final pdfService = _ReciboPdfServiceFake(pdfBytes);
-    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PedidoPage(
-          viewModel: viewModel,
-          reciboPdfService: pdfService,
-          reciboCompartilhamentoService: compartilhamentoService,
-        ),
-      ),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('Compartilhar recibo'), findsOneWidget);
-    final dialog = find.byType(AlertDialog);
-    expect(
-      find.descendant(of: dialog, matching: find.text('E-mail')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('Compartilhar')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('WhatsApp')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.text('Salvar arquivo')),
-      findsOneWidget,
-    );
-    expect(_findIcon(Icons.ios_share_outlined), findsWidgets);
-
-    await tester.tap(find.text('E-mail'));
-    await tester.pumpAndSettle();
-
-    expect(pdfService.chamadas, 1);
-    expect(compartilhamentoService.destino, 'email');
-    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
-    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
-    expect(viewModel.compartilhandoPdf, isFalse);
-    expect(viewModel.ultimaAcaoRecibo, 'pdf-compartilhado');
-    expect(
-      find.text('Compartilhamento por e-mail aberto pela folha do sistema.'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('PedidoPage salva PDF pelo popup de compartilhamento', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-    final pdfBytes = Uint8List.fromList([37, 80, 68, 70, 45]);
-    final pdfService = _ReciboPdfServiceFake(pdfBytes);
-    final compartilhamentoService = _ReciboCompartilhamentoServiceFake();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PedidoPage(
-          viewModel: viewModel,
-          reciboPdfService: pdfService,
-          reciboCompartilhamentoService: compartilhamentoService,
-        ),
-      ),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar arquivo'));
-    await tester.pumpAndSettle();
-
-    expect(pdfService.chamadas, 1);
-    expect(compartilhamentoService.destino, 'salvar');
-    expect(compartilhamentoService.pdfBytes, same(pdfBytes));
-    expect(compartilhamentoService.nomeArquivo, 'recibo-0042.pdf');
-    expect(viewModel.ultimaAcaoRecibo, 'pdf-salvo');
-    expect(find.text('PDF salvo.'), findsOneWidget);
-  });
-
-  testWidgets('PedidoPage trata cancelamento do popup de compartilhamento', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    _preencherReciboParaPdf(viewModel);
-    final pdfService = _ReciboPdfServiceFake(Uint8List.fromList([1, 2, 3]));
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PedidoPage(viewModel: viewModel, reciboPdfService: pdfService),
-      ),
-    );
-
-    final botaoCompartilhar = find.widgetWithText(
-      OutlinedButton,
-      'Compartilhar',
-    );
-    await tester.ensureVisible(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(botaoCompartilhar);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancelar'));
-    await tester.pumpAndSettle();
-
-    expect(pdfService.chamadas, 0);
-    expect(viewModel.ultimaAcaoRecibo, 'compartilhamento-cancelado');
-    expect(find.text('Compartilhamento cancelado.'), findsOneWidget);
   });
 
   testWidgets('PedidoPage edita e salva dados do cabeçalho pelo dialog', (
@@ -970,6 +688,33 @@ void main() {
     expect(reciboTop, lessThan(resumoTop));
   });
 
+  testWidgets('PedidoPageLayout rola sem exceção de Scrollbar', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 320,
+            child: PedidoPageLayout(
+              cabecalho: _BlocoTeste(texto: 'Cabeçalho', altura: 180),
+              recibo: _BlocoTeste(texto: 'Recibo', altura: 520),
+              resumo: _BlocoTeste(texto: 'Resumo', altura: 360),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'PedidoPageLayout não gera overflow em larguras representativas',
     (WidgetTester tester) async {
@@ -1125,14 +870,15 @@ class _ReciboCompartilhamentoServiceFake extends ReciboCompartilhamentoService {
 }
 
 class _BlocoTeste extends StatelessWidget {
-  const _BlocoTeste({required this.texto});
+  const _BlocoTeste({required this.texto, this.altura = 160});
 
   final String texto;
+  final double altura;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 160,
+      height: altura,
       child: Align(alignment: Alignment.topLeft, child: Text(texto)),
     );
   }

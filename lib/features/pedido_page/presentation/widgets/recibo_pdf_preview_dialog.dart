@@ -16,6 +16,7 @@ class ReciboPdfPreviewDialog extends StatelessWidget {
     required this.pdfBytes,
     required this.nomeArquivo,
     this.previewBuilder,
+    this.onImprimirPdf,
     this.onCompartilharPdf,
     this.onSalvarArquivo,
     super.key,
@@ -24,6 +25,7 @@ class ReciboPdfPreviewDialog extends StatelessWidget {
   final Uint8List pdfBytes;
   final String nomeArquivo;
   final ReciboPdfPreviewContentBuilder? previewBuilder;
+  final Future<void> Function()? onImprimirPdf;
   final Future<void> Function()? onCompartilharPdf;
   final Future<void> Function()? onSalvarArquivo;
 
@@ -58,6 +60,13 @@ class ReciboPdfPreviewDialog extends StatelessWidget {
             ),
       ),
       actions: [
+        if (onImprimirPdf != null)
+          TextButton.icon(
+            key: const ValueKey('recibo-pdf-preview-imprimir'),
+            onPressed: () async => onImprimirPdf?.call(),
+            icon: const Icon(Icons.print_outlined, size: 16),
+            label: const Text('Imprimir'),
+          ),
         if (onCompartilharPdf != null)
           TextButton.icon(
             key: const ValueKey('recibo-pdf-preview-compartilhar'),

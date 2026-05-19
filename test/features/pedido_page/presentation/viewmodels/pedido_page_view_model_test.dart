@@ -322,6 +322,142 @@ void main() {
     expect(repository.salvos.single.numero, '0001');
   });
 
+  test(
+    'PedidoPageViewModel remove último item acidental antes de salvar',
+    () async {
+      final repository = _ReciboRepositoryFake();
+      final viewModel = PedidoPageViewModel(reciboRepository: repository);
+      addTearDown(viewModel.dispose);
+
+      _preencherReciboValido(viewModel, numero: '0002');
+      viewModel.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: 'Cordão',
+          valorUnitarioCentavos: 500,
+        ),
+      );
+      viewModel.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: '   ',
+          valorUnitarioCentavos: 0,
+        ),
+      );
+
+      await viewModel.salvarRecibo();
+
+      expect(viewModel.erro, isNull);
+      expect(viewModel.reciboAtualSalvo, isTrue);
+      expect(viewModel.itens.map((item) => item.descricao), [
+        'Crachá PVC',
+        'Cordão',
+      ]);
+      expect(viewModel.itens.map((item) => item.ordem), [1, 2]);
+      expect(repository.salvos.single.itens.map((item) => item.descricao), [
+        'Crachá PVC',
+        'Cordão',
+      ]);
+      expect(repository.salvos.single.itens.map((item) => item.ordem), [1, 2]);
+    },
+  );
+
+  test(
+    'PedidoPageViewModel não remove item intermediário vazio ao salvar',
+    () async {
+      final repository = _ReciboRepositoryFake();
+      final viewModel = PedidoPageViewModel(reciboRepository: repository);
+      addTearDown(viewModel.dispose);
+
+      viewModel.atualizarNumero('0003');
+      viewModel.atualizarCliente('Cliente Teste');
+      viewModel.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: 'Crachá PVC',
+          valorUnitarioCentavos: 1500,
+        ),
+      );
+      viewModel.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: '',
+          valorUnitarioCentavos: 0,
+        ),
+      );
+      viewModel.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: 'Cordão',
+          valorUnitarioCentavos: 500,
+        ),
+      );
+
+      await viewModel.salvarRecibo();
+
+      expect(viewModel.erro, 'Item 2: A descrição do item é obrigatória.');
+      expect(viewModel.itens, hasLength(3));
+      expect(repository.salvos, isEmpty);
+    },
+  );
+
+  test(
+    'PedidoPageViewModel preserva último item com descrição ou valor',
+    () async {
+      final repositoryComDescricao = _ReciboRepositoryFake();
+      final viewModelComDescricao = PedidoPageViewModel(
+        reciboRepository: repositoryComDescricao,
+      );
+      addTearDown(viewModelComDescricao.dispose);
+
+      _preencherReciboValido(viewModelComDescricao, numero: '0004');
+      viewModelComDescricao.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: 'Brinde',
+          valorUnitarioCentavos: 0,
+        ),
+      );
+
+      await viewModelComDescricao.salvarRecibo();
+
+      expect(viewModelComDescricao.erro, isNull);
+      expect(repositoryComDescricao.salvos.single.itens, hasLength(2));
+      expect(
+        repositoryComDescricao.salvos.single.itens.last.descricao,
+        'Brinde',
+      );
+      expect(
+        repositoryComDescricao.salvos.single.itens.last.valorUnitarioCentavos,
+        0,
+      );
+
+      final repositoryComValor = _ReciboRepositoryFake();
+      final viewModelComValor = PedidoPageViewModel(
+        reciboRepository: repositoryComValor,
+      );
+      addTearDown(viewModelComValor.dispose);
+
+      _preencherReciboValido(viewModelComValor, numero: '0005');
+      viewModelComValor.adicionarItem(
+        const ItemRecibo(
+          quantidade: 1,
+          descricao: '',
+          valorUnitarioCentavos: 2500,
+        ),
+      );
+
+      await viewModelComValor.salvarRecibo();
+
+      expect(
+        viewModelComValor.erro,
+        'Item 2: A descrição do item é obrigatória.',
+      );
+      expect(viewModelComValor.itens.last.valorUnitarioCentavos, 2500);
+      expect(repositoryComValor.salvos, isEmpty);
+    },
+  );
+
   test('PedidoPageViewModel salva recibo e atualiza histórico', () async {
     final repository = _ReciboRepositoryFake();
     final viewModel = PedidoPageViewModel(reciboRepository: repository);
@@ -432,7 +568,11 @@ void main() {
     () async {
       final repository = _ClienteRepositoryFake();
       await repository.salvar(
-        Cliente(nome: 'Ana Pereira', telefone: '(51) 9 1111-1111'),
+        Cliente(
+          nome: 'Ana Pereira',
+          telefone: '(51) 9 1111-1111',
+          email: 'ana@exemplo.com',
+        ),
       );
       await repository.salvar(
         Cliente(nome: 'Bruno Costa', telefone: '51922222222'),
@@ -463,6 +603,7 @@ void main() {
       expect(viewModel.feedbackClientes, 'Cliente salvo.');
       expect(viewModel.reciboEmEdicao.cliente, 'Carla Souza');
       expect(viewModel.reciboEmEdicao.telefone, '51933333333');
+      expect(viewModel.emailClienteSelecionado, 'carla@exemplo.com');
       expect(repository.salvos.last.email, 'carla@exemplo.com');
 
       await viewModel.pesquisarClientes('carla@exemplo.com');
@@ -474,6 +615,7 @@ void main() {
       expect(viewModel.feedbackClientes, 'Cliente selecionado.');
       expect(viewModel.reciboEmEdicao.cliente, 'Ana Pereira');
       expect(viewModel.reciboEmEdicao.telefone, '51911111111');
+      expect(viewModel.emailClienteSelecionado, 'ana@exemplo.com');
     },
   );
 

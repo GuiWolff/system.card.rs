@@ -45,7 +45,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('recibo-formulario-valor-entrada')),
-      '10,00',
+      '235',
     );
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -57,7 +57,14 @@ void main() {
     expect(viewModel.reciboEmEdicao.numero, '0007');
     expect(viewModel.reciboEmEdicao.cliente, 'Ana Lima');
     expect(viewModel.reciboEmEdicao.telefone, '51999990000');
-    expect(viewModel.valorEntradaCentavos, 1000);
+    expect(viewModel.valorEntradaCentavos, 235);
+    expect(
+      _textoDoCampo(
+        tester,
+        find.byKey(const ValueKey('recibo-formulario-valor-entrada')),
+      ),
+      '2,35',
+    );
     expect(viewModel.reciboEmEdicao.observacoes, 'Entregar no balcão.');
   });
 
@@ -98,16 +105,23 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('produto-valor-unitario-0')),
-      '12,50',
+      '235',
     );
     await tester.pumpAndSettle();
 
     expect(viewModel.itens, hasLength(1));
     expect(viewModel.itens.single.quantidade, 3);
     expect(viewModel.itens.single.descricao, 'Cordão personalizado');
-    expect(viewModel.itens.single.valorUnitarioCentavos, 1250);
-    expect(viewModel.totalPedidoCentavos, 3750);
-    expect(find.text('37,50'), findsWidgets);
+    expect(viewModel.itens.single.valorUnitarioCentavos, 235);
+    expect(viewModel.totalPedidoCentavos, 705);
+    expect(
+      _textoDoCampo(
+        tester,
+        find.byKey(const ValueKey('produto-valor-unitario-0')),
+      ),
+      '2,35',
+    );
+    expect(find.text('7,05'), findsWidgets);
 
     final botaoRemover = find.byTooltip('Remover item');
     await tester.ensureVisible(botaoRemover);
@@ -482,6 +496,81 @@ void main() {
     expect(find.text('(51) 9 1111-1111'), findsWidgets);
   });
 
+  testWidgets(
+    'ReciboPedido pesquisa clientes ao digitar e seleciona sugestão',
+    (WidgetTester tester) async {
+      final repository = _ClienteRepositoryFake();
+      await repository.salvar(
+        Cliente(
+          nome: 'Ana Pereira',
+          telefone: '51911111111',
+          email: 'ana@exemplo.com',
+        ),
+      );
+      await repository.salvar(
+        Cliente(
+          nome: 'Ana Sem Telefone',
+          telefone: '',
+          email: 'semtelefone@exemplo.com',
+        ),
+      );
+      await repository.salvar(
+        Cliente(nome: 'Bruno Costa', telefone: '51922222222'),
+      );
+      final viewModel = PedidoPageViewModel(clienteRepository: repository);
+      addTearDown(viewModel.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ReciboPedido(viewModel: viewModel),
+            ),
+          ),
+        ),
+      );
+
+      final campoCliente = find.byKey(
+        const ValueKey('recibo-formulario-cliente'),
+      );
+      await tester.tap(campoCliente);
+      await tester.enterText(campoCliente, 'ana');
+      await tester.pumpAndSettle();
+
+      expect(viewModel.reciboEmEdicao.cliente, 'ana');
+      expect(viewModel.termoBuscaClientes, 'ana');
+      expect(
+        find.text('Ana Pereira - (51) 9 1111-1111 - ana@exemplo.com'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Ana Sem Telefone - semtelefone@exemplo.com'),
+        findsOneWidget,
+      );
+      expect(find.text('Bruno Costa'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('recibo-formulario-cliente-sugestao-0')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(viewModel.reciboEmEdicao.cliente, 'Ana Pereira');
+      expect(viewModel.reciboEmEdicao.telefone, '51911111111');
+      expect(viewModel.emailClienteSelecionado, 'ana@exemplo.com');
+      expect(
+        find.text('Ana Pereira - (51) 9 1111-1111 - ana@exemplo.com'),
+        findsNothing,
+      );
+      expect(
+        _textoDoCampo(
+          tester,
+          find.byKey(const ValueKey('recibo-formulario-cliente')),
+        ),
+        'Ana Pereira',
+      );
+    },
+  );
+
   testWidgets('ReciboPedido aciona callback de Gerar PDF', (
     WidgetTester tester,
   ) async {
@@ -510,33 +599,27 @@ void main() {
     expect(chamadas, 1);
   });
 
-  testWidgets('ReciboPedido aciona callback de Compartilhar', (
-    WidgetTester tester,
-  ) async {
-    final viewModel = PedidoPageViewModel();
-    addTearDown(viewModel.dispose);
-    var chamadas = 0;
+  testWidgets(
+    'ReciboPedido não exibe Imprimir nem Compartilhar nas ações rápidas',
+    (WidgetTester tester) async {
+      final viewModel = PedidoPageViewModel();
+      addTearDown(viewModel.dispose);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ReciboPedido(
-              viewModel: viewModel,
-              onCompartilharPdf: () async {
-                chamadas++;
-              },
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ReciboPedido(viewModel: viewModel),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Compartilhar'));
-    await tester.pumpAndSettle();
-
-    expect(chamadas, 1);
-  });
+      expect(find.widgetWithText(OutlinedButton, 'Imprimir'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'Compartilhar'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'Gerar PDF'), findsOneWidget);
+    },
+  );
 
   testWidgets('ReciboPedido usa ícones nativos nas ações do recibo', (
     WidgetTester tester,
@@ -558,9 +641,7 @@ void main() {
     expect(_findIcon(Icons.note_add_outlined), findsOneWidget);
     expect(_findIcon(Icons.history_outlined), findsOneWidget);
     expect(_findIcon(Icons.groups_outlined), findsOneWidget);
-    expect(_findIcon(Icons.print_outlined), findsOneWidget);
     expect(_findIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
-    expect(_findIcon(Icons.ios_share_outlined), findsOneWidget);
   });
 }
 
@@ -673,6 +754,14 @@ bool _campoTemFoco(WidgetTester tester, Finder campo) {
   );
 
   return editableText.focusNode.hasFocus;
+}
+
+String _textoDoCampo(WidgetTester tester, Finder campo) {
+  final editableText = tester.widget<EditableText>(
+    find.descendant(of: campo, matching: find.byType(EditableText)),
+  );
+
+  return editableText.controller.text;
 }
 
 Finder _findIcon(IconData icon) {

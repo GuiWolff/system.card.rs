@@ -1054,8 +1054,8 @@
 - A `PedidoPage` continua sendo a tela inicial real do app e segue aberta por `lib/main.dart`, sem criação de nova rota ou `ReciboPage`.
 - O `MaterialApp` passou a usar `TemaApp.temaClaro()` e `TemaApp.temaEscuro()`, centralizando a identidade visual no tema customizado do projeto.
 - A paleta base do `TemaCores` foi alinhada à identidade da System Card - RS:
-  - `primaria` usa laranja de marca próximo de `#f7900a`;
-  - `destaque` usa azul de seções/títulos próximo de `#0c78ce`;
+  - `primaria` usa azul de marca próximo de `#1C4779`;
+  - `destaque` usa laranja de apoio próximo de `#F28C28`;
   - `green` permanece reservado para sucesso, ações positivas e valores favoráveis.
 - As superfícies, bordas, containers e estados de tema claro/escuro continuam definidos no tema, evitando espalhar cores nos widgets da feature.
 - Este slice revisa a base visual da `PedidoPage`, mas não altera fluxo funcional, ViewModel, repository, serviços, formulário, tabela, resumo, cabeçalho ou dialogs.
@@ -1076,11 +1076,11 @@
 ## Atualização de layout - Slice 3/5 - Cabeçalho e ações
 - O `CabecalhoApp` mantém identidade, contatos, ações, menu, callbacks e estados desabilitados/em andamento já existentes.
 - A superfície do cabeçalho foi harmonizada com a base visual da `PedidoPage`, usando `ColorScheme.surface`, borda sutil e sombra baixa.
-- A marca `SYSTEM CARD - RS` ganhou maior hierarquia visual, preservando o laranja primário do tema.
+- A marca `SYSTEM CARD - RS` ganhou maior hierarquia visual, preservando o azul primário do tema.
 - O fallback de logo `SC` continua disponível, agora em superfície de container primário com borda da cor primária para manter legibilidade.
 - Os contatos continuam visíveis e responsivos, com ícones semânticos e cores vindas do `ColorScheme`.
 - As ações principais seguem a referência visual:
-  - `IMPRIMIR` em azul de destaque;
+  - `IMPRIMIR` em laranja de destaque;
   - `GERAR PDF` em verde de ação positiva;
   - `MAIS OPÇÕES` como botão neutro contornado.
 - O `CabecalhoEditorDialog` foi harmonizado com a mesma linguagem visual, mantendo seleção, remoção e restauração de logo sem alterar persistência ou ViewModel.
@@ -1099,7 +1099,7 @@
 - A área de ações do recibo foi agrupada em superfície operacional com borda sutil, preservando estados de carregamento, feedbacks e mensagens de erro.
 - `ReciboFormulario` mantém campos, formatadores, callbacks e chaves de teste, agora com hierarquia visual em azul e ícones semânticos nos campos.
 - `ProdutosServicosTabela` continua usando `ListView.separated`, mantendo edição inline, remoção de item e ausência de overflow em larguras menores.
-- A tabela recebeu cabeçalho azul em larguras amplas, ação `Adicionar item` em verde e destaque visual para o total do item.
+- A tabela recebeu cabeçalho em laranja nas larguras amplas, ação `Adicionar item` em verde e destaque visual para o total do item.
 - `ClientesPainel` mantém estado local via `TextEditingController`, busca, cadastro e seleção, com superfície de cadastro e lista harmonizadas ao tema.
 - `HistoricoRecibosPainel` mantém busca, carregar, duplicar e excluir recibos, com cabeçalho e ações alinhados à mesma identidade visual.
 - Impacto em UI: sim, por modernização do recibo editável, formulário, tabela e painéis. O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
@@ -1107,7 +1107,7 @@
 ## Atualização de layout - Slice 5/5 - Resumo, visualização e fechamento
 - `ResumoPedido` mantém cálculo fora do widget e continua recebendo valores já formatados pela `PedidoPageViewModel`.
 - O valor a pagar na entrega segue como destaque visual em verde (`ColorScheme.tertiary`), preservando leitura rápida do saldo.
-- O resumo financeiro foi harmonizado com superfície clara, borda sutil, sombra baixa e título em azul de destaque.
+- O resumo financeiro foi harmonizado com superfície clara, borda sutil, sombra baixa e título em laranja de destaque.
 - `VisualizacaoRecibo` preserva a leitura de documento:
   - cabeçalho da empresa;
   - contatos;
@@ -1117,7 +1117,7 @@
   - observações;
   - tabela de itens;
   - totais finais.
-- A prévia visual do recibo mantém estrutura semelhante ao documento de referência, com marca em laranja, contatos com ícones semânticos e total final destacado em verde.
+- A prévia visual do recibo mantém estrutura semelhante ao documento de referência, com marca em azul, contatos com ícones semânticos e total final destacado em verde.
 - `ReciboCompartilhamentoDialog` e `ReciboPdfPreviewDialog` foram harmonizados com o tema por meio de título com ícone, superfície do `ColorScheme` e cantos de 8 px.
 - `ReciboPdfService` não foi alterado neste slice, porque a saída A4 já preserva a estrutura funcional esperada e os testes completos continuaram passando.
 - Validação final executada com `flutter analyze`, testes específicos do slice, teste da `PedidoPage` e `flutter test`.
@@ -1660,3 +1660,77 @@
 - O compartilhamento pela prévia deve preservar o fluxo genérico já existente com `ReciboCompartilhamentoService`.
 - `PedidoPageLayout` deve corrigir o uso de `Scrollbar` com `ScrollController` explícito compartilhado com o `SingleChildScrollView`, evitando a exceção de `ScrollPosition` ausente.
 - Cada slice que implementar parte deste planejamento deve atualizar este contrato com o resultado real aplicado e as validações executadas.
+
+## Atualização funcional - 2026-05-18 - Slice 1/5 - Digitação monetária por centavos
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- Os campos monetários editáveis do recibo passaram a usar `MonetarioInputFormatter` em `lib/features/pedido_page/presentation/input_formatters/`.
+- A regra de digitação monetária agora é única para:
+  - `ReciboFormulario`, no campo `Valor de entrada`;
+  - `ResumoPedido`, no campo `Valor Entrada`;
+  - `ProdutosServicosTabela`, no campo `Valor unitário`.
+- Separadores digitados pelo usuário são removidos antes do cálculo, e os dígitos restantes são interpretados como centavos:
+  - `2` exibe `0,02`;
+  - `23` exibe `0,23`;
+  - `235` exibe `2,35`;
+  - `2350` exibe `23,50`.
+- A UI continua exibindo valores monetários sem símbolo dentro dos campos editáveis quando o prefixo `R$` já é visual ou externo ao campo.
+- A ViewModel e o domínio continuam recebendo valores monetários como centavos inteiros.
+- Não houve alteração nas regras de validação financeira, persistência, PDF, impressão, compartilhamento, clientes, histórico ou rolagem neste slice.
+- Impacto em UI: sim, por mudança no comportamento de digitação e normalização visual dos inputs monetários.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização funcional - 2026-05-18 - Slice 2/5 - Remoção do último item acidental
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- `PedidoPageViewModel.salvarRecibo()` passou a normalizar o recibo em edição antes da validação de domínio e da persistência.
+- Ao salvar, se o último item tiver `descricao.trim().isEmpty` e `valorUnitarioCentavos == 0`, esse item é removido automaticamente do recibo em edição.
+- A remoção automática é restrita ao último item, preservando a ordem dos itens remanescentes.
+- Itens intermediários vazios continuam sendo validados normalmente e bloqueiam o salvamento com a mensagem de domínio existente.
+- O último item não é removido quando possui descrição preenchida, mesmo com valor unitário `0,00`.
+- O último item não é removido quando possui valor unitário maior que zero, mesmo com descrição vazia; nesse caso, a validação existente de descrição obrigatória permanece.
+- Não houve alteração em repository, schema SQLite, widgets, PDF, impressão, compartilhamento, clientes, histórico, rolagem ou APIs públicas.
+- Impacto em UI/fluxo: sim, o fluxo de salvamento deixa de ser bloqueado pelo item vazio final criado acidentalmente por Enter no valor unitário.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização funcional - 2026-05-18 - Slice 3/5 - Sugestões de cliente no formulário
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- O campo `Cliente` do `ReciboFormulario` passou a pesquisar clientes enquanto o usuário digita.
+- A UI exibe sugestões próximas ao campo, em composição local estilo combobox, sem pacote novo de autocomplete.
+- As sugestões exibem o cliente no formato `Nome`, `Nome - Telefone`, `Nome - E-mail` ou `Nome - Telefone - E-mail`, omitindo dados ausentes.
+- O telefone exibido nas sugestões usa `TelefoneInputFormatter.formatar`, preservando o telefone normalizado no domínio e na ViewModel.
+- Ao digitar texto livre, o fluxo continua chamando `PedidoPageViewModel.atualizarCliente`, mantendo o texto informado no recibo em edição.
+- Ao selecionar uma sugestão, o fluxo reaproveita `PedidoPageViewModel.selecionarCliente(cliente)`, preenchendo nome, telefone e e-mail selecionado.
+- `PedidoPageViewModel.pesquisarClientes` passou a descartar respostas antigas quando uma pesquisa mais recente já foi iniciada, evitando que resultados atrasados sobrescrevam o termo atual.
+- A ViewModel continua sem dependência de `BuildContext`.
+- O painel `ClientesPainel` foi preservado como fluxo complementar de cadastro, pesquisa, gestão e seleção de clientes.
+- Não houve alteração em salvamento de recibo, itens, valores monetários, PDF, impressão, compartilhamento, histórico, rolagem, repository, SQLite ou schema.
+- Impacto em UI: sim, por adicionar lista de sugestões abaixo do campo `Cliente` durante a digitação.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização funcional - 2026-05-18 - Slice 4/5 - Ações de saída na prévia do PDF
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- A linha de ações rápidas do `ReciboPedido` deixou de exibir as ações visuais `Imprimir` e `Compartilhar`.
+- A ação `Gerar PDF` permanece como ponto de entrada para o fluxo de saída do recibo.
+- `ReciboPdfPreviewDialog` passou a concentrar as ações:
+  - `Imprimir`;
+  - `Compartilhar`;
+  - `Salvar arquivo`;
+  - `Fechar`.
+- A impressão acionada pela prévia usa os `pdfBytes` e o `nomeArquivo` já gerados para a visualização, sem chamar novamente `ReciboPdfService.gerarPdfA4`.
+- O compartilhamento acionado pela prévia continua usando `ReciboCompartilhamentoService.compartilharGenerico` com o PDF já gerado.
+- O salvamento acionado pela prévia continua usando `ReciboCompartilhamentoService.salvarArquivo` com o PDF já gerado.
+- `ReciboCompartilhamentoDialog` e os serviços existentes foram preservados; apenas deixaram de ser ponto de entrada visual da linha rápida do recibo.
+- A API pública de `ReciboPedido` foi preservada para evitar quebra no barrel `lib/features/pedido_page/pedido_page.dart`; os parâmetros legados `onImprimir` e `onCompartilharPdf` não foram removidos neste slice.
+- Não houve alteração em payload de compartilhamento, geração do PDF, domínio, persistência, clientes, histórico, valores monetários ou rolagem.
+- Impacto em UI: sim, por concentrar impressão, compartilhamento e salvamento dentro da prévia do PDF e simplificar a linha de ações rápidas.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.
+
+## Atualização funcional - 2026-05-18 - Slice 5/5 - Rolagem estável da PedidoPage
+- A `PedidoPage` continua sendo a tela agregadora única da feature `pedido_page`, sem criação de nova rota, Page ou feature paralela.
+- `PedidoPageLayout` passou a manter um `ScrollController` próprio para a rolagem vertical da tela.
+- O `Scrollbar` e o `SingleChildScrollView` agora compartilham o mesmo `ScrollController`, evitando a exceção `The Scrollbar's ScrollController has no ScrollPosition attached`.
+- O `SingleChildScrollView` usa `primary: false` junto do controller explícito para não depender do `PrimaryScrollController` da árvore.
+- O controller é descartado no `dispose()` do layout.
+- Foram preservados `SafeArea`, padding responsivo, largura máxima, resumo lateral em telas amplas e ordem visual de cabeçalho, recibo e resumo.
+- Não houve alteração em formulário, valores monetários, clientes, salvamento, PDF, impressão, compartilhamento, domínio, ViewModel, repository, SQLite ou APIs públicas.
+- Impacto em UI: não há mudança visual intencional; o impacto é de estabilidade da rolagem em Web/Desktop/Mobile.
+- O contrato impactado e revisado foi `lib/features/pedido_page/presentation/pages/pedido_page-contrato.md`.

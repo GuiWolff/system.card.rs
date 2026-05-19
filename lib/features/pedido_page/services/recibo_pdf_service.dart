@@ -359,8 +359,8 @@ class ReciboPdfService {
   }
 }
 
-const _primaria = PdfColor.fromInt(0xfff7900a);
-const _escuro = PdfColor.fromInt(0xff222222);
+const _primaria = PdfColor.fromInt(0xff1c4779);
+const _escuro = PdfColor.fromInt(0xff0b2239);
 const _borda = PdfColors.grey600;
 const _textoComum = pw.TextStyle(fontSize: 10);
 final _textoNegrito = pw.TextStyle(

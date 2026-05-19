@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/monetario_input_formatter.dart';
 
 class ResumoPedido extends StatelessWidget {
   const ResumoPedido({
@@ -240,10 +240,10 @@ class _CampoResumoPedidoState extends State<_CampoResumoPedido> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-              ],
-              onChanged: (texto) => widget.onChanged!(_converterMoeda(texto)),
+              inputFormatters: const [MonetarioInputFormatter()],
+              onChanged: (texto) => widget.onChanged!(
+                MonetarioInputFormatter.converterParaCentavos(texto),
+              ),
             ),
           if (widget.onChanged == null && widget.mensagemErro != null) ...[
             const SizedBox(height: 6),
@@ -266,20 +266,5 @@ class _CampoResumoPedidoState extends State<_CampoResumoPedido> {
       text: texto,
       selection: TextSelection.collapsed(offset: texto.length),
     );
-  }
-
-  static int _converterMoeda(String valor) {
-    final semEspacos = valor.trim().replaceAll('R\$', '').replaceAll(' ', '');
-    if (semEspacos.isEmpty) {
-      return 0;
-    }
-
-    final normalizado = semEspacos.replaceAll('.', '').replaceAll(',', '.');
-    final valorDecimal = double.tryParse(normalizado);
-    if (valorDecimal == null) {
-      return 0;
-    }
-
-    return (valorDecimal * 100).round();
   }
 }

@@ -54,6 +54,7 @@ class PedidoPageViewModel {
   final ReciboRepository? _reciboRepository;
   final ClienteRepository? _clienteRepository;
   CabecalhoPreferenciasRepository? _cabecalhoRepository;
+  int _pesquisaClientesVersao = 0;
   final Rx<CabecalhoEmpresa> _cabecalhoEmpresa;
   final Rx<Recibo> _reciboEmEdicao;
   final Rx<List<Recibo>> _historico;
@@ -408,7 +409,13 @@ class PedidoPageViewModel {
       }
     }
 
-    final erros = reciboEmEdicao.validar();
+    final reciboParaSalvar = _normalizarReciboParaSalvar(reciboEmEdicao);
+    if (!identical(reciboParaSalvar, reciboEmEdicao)) {
+      _reciboEmEdicao.value = reciboParaSalvar;
+      _reciboAtualSalvo.value = false;
+    }
+
+    final erros = reciboParaSalvar.validar();
     if (erros.isNotEmpty) {
       _erro.value = erros.first;
       return;
@@ -416,9 +423,9 @@ class PedidoPageViewModel {
 
     await _executarComRepository((repository) async {
       _salvando.value = true;
-      final reciboSalvo = reciboEmEdicao.id == null
-          ? await repository.salvar(reciboEmEdicao)
-          : await repository.atualizar(reciboEmEdicao);
+      final reciboSalvo = reciboParaSalvar.id == null
+          ? await repository.salvar(reciboParaSalvar)
+          : await repository.atualizar(reciboParaSalvar);
 
       _reciboEmEdicao.value = reciboSalvo;
       _reciboAtualSalvo.value = true;
@@ -722,6 +729,7 @@ class PedidoPageViewModel {
   }
 
   Future<void> listarClientes() async {
+    _pesquisaClientesVersao++;
     await _executarComClienteRepository((repository) async {
       _carregandoClientes.value = true;
       _clientes.value = await repository.listar();
@@ -730,10 +738,32 @@ class PedidoPageViewModel {
 
   Future<void> pesquisarClientes(String termo) async {
     _termoBuscaClientes.value = termo;
-    await _executarComClienteRepository((repository) async {
-      _carregandoClientes.value = true;
-      _clientes.value = await repository.pesquisar(termo);
-    });
+    final repository = _clienteRepository;
+    if (repository == null) {
+      _erroClientes.value = 'Repository de clientes não configurado.';
+      return;
+    }
+
+    final versao = ++_pesquisaClientesVersao;
+    _erroClientes.value = null;
+    _feedbackClientes.value = null;
+    _carregandoClientes.value = true;
+
+    try {
+      final clientes = await repository.pesquisar(termo);
+      if (versao == _pesquisaClientesVersao &&
+          termo == _termoBuscaClientes.value) {
+        _clientes.value = clientes;
+      }
+    } catch (erro) {
+      if (versao == _pesquisaClientesVersao) {
+        _erroClientes.value = _mensagemErroCliente(erro);
+      }
+    } finally {
+      if (versao == _pesquisaClientesVersao) {
+        _carregandoClientes.value = false;
+      }
+    }
   }
 
   Future<void> salvarCliente({
@@ -741,6 +771,7 @@ class PedidoPageViewModel {
     required String telefone,
     String email = '',
   }) async {
+    _pesquisaClientesVersao++;
     await _executarComClienteRepository((repository) async {
       _salvandoCliente.value = true;
       final cliente = Cliente(nome: nome, telefone: telefone, email: email);
@@ -756,7 +787,10 @@ class PedidoPageViewModel {
   }
 
   void selecionarCliente(Cliente cliente) {
+    _pesquisaClientesVersao++;
     _selecionarClienteNoRecibo(cliente);
+    _clientes.value = const <Cliente>[];
+    _termoBuscaClientes.value = cliente.nome;
     _feedbackClientes.value = 'Cliente selecionado.';
     _erroClientes.value = null;
   }
@@ -990,6 +1024,26 @@ class PedidoPageViewModel {
       for (var indice = 0; indice < itens.length; indice++)
         itens[indice].copyWith(ordem: indice + 1),
     ];
+  }
+
+  static Recibo _normalizarReciboParaSalvar(Recibo recibo) {
+    final itens = recibo.itens;
+    if (itens.isEmpty) {
+      return recibo;
+    }
+
+    final ultimoItem = itens.last;
+    final ultimoItemAcidental =
+        ultimoItem.descricao.trim().isEmpty &&
+        ultimoItem.valorUnitarioCentavos == 0;
+
+    if (!ultimoItemAcidental) {
+      return recibo;
+    }
+
+    return recibo.copyWith(
+      itens: itens.take(itens.length - 1).toList(growable: false),
+    );
   }
 
   static Recibo _duplicarSemIds(Recibo recibo) {

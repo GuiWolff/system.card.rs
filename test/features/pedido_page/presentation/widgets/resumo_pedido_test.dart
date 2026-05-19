@@ -32,7 +32,7 @@ void main() {
     expect(_findIcon(Icons.local_shipping_outlined), findsOneWidget);
   });
 
-  testWidgets('ResumoPedido envia valor de entrada em centavos', (
+  testWidgets('ResumoPedido digita valor de entrada por centavos', (
     WidgetTester tester,
   ) async {
     var valorRecebido = -1;
@@ -52,11 +52,13 @@ void main() {
 
     await tester.enterText(
       find.byKey(const ValueKey('resumo-valor-entrada')),
-      '25,50',
+      '235',
     );
     await tester.pump();
 
-    expect(valorRecebido, 2550);
+    final campo = find.byKey(const ValueKey('resumo-valor-entrada'));
+    expect(valorRecebido, 235);
+    expect(_textoDoCampo(tester, campo), '2,35');
   });
 
   testWidgets('ResumoPedido mantém foco ao atualizar valor de entrada', (
@@ -158,4 +160,12 @@ Finder _findIcon(IconData icon) {
   return find.byWidgetPredicate(
     (widget) => widget is Icon && widget.icon == icon,
   );
+}
+
+String _textoDoCampo(WidgetTester tester, Finder campo) {
+  final editableText = tester.widget<EditableText>(
+    find.descendant(of: campo, matching: find.byType(EditableText)),
+  );
+
+  return editableText.controller.text;
 }

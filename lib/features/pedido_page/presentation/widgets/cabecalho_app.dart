@@ -42,7 +42,7 @@ class CabecalhoApp extends StatelessWidget {
       label: 'Cabeçalho da empresa',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLowest,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colorScheme.outlineVariant),
           boxShadow: [

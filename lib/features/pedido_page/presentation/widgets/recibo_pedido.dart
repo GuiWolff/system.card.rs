@@ -31,12 +31,7 @@ class ReciboPedido extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ReciboAcoes(
-            viewModel: viewModel,
-            onImprimir: onImprimir,
-            onCompartilharPdf: onCompartilharPdf,
-            onGerarPdf: onGerarPdf,
-          ),
+          _ReciboAcoes(viewModel: viewModel, onGerarPdf: onGerarPdf),
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -49,6 +44,10 @@ class ReciboPedido extends StatelessWidget {
                 onDataRecebimentoChanged: viewModel.atualizarDataRecebimento,
                 onDataEntregaChanged: viewModel.atualizarDataEntrega,
                 onClienteChanged: viewModel.atualizarCliente,
+                onPesquisarCliente: viewModel.pesquisarClientes,
+                onClienteSelecionado: viewModel.selecionarCliente,
+                clientesSugeridos: viewModel.clientes,
+                carregandoClientes: viewModel.carregandoClientes,
                 onTelefoneChanged: viewModel.atualizarTelefone,
                 onValorEntradaChanged: viewModel.atualizarValorEntradaCentavos,
                 onObservacoesChanged: viewModel.atualizarObservacoes,
@@ -104,7 +103,7 @@ class _ReciboVisualizacaoSecao extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
@@ -142,16 +141,9 @@ class _ReciboVisualizacaoSecao extends StatelessWidget {
 }
 
 class _ReciboAcoes extends StatelessWidget {
-  const _ReciboAcoes({
-    required this.viewModel,
-    required this.onImprimir,
-    required this.onCompartilharPdf,
-    required this.onGerarPdf,
-  });
+  const _ReciboAcoes({required this.viewModel, required this.onGerarPdf});
 
   final PedidoPageViewModel viewModel;
-  final Future<void> Function()? onImprimir;
-  final Future<void> Function()? onCompartilharPdf;
   final Future<void> Function()? onGerarPdf;
 
   @override
@@ -168,7 +160,7 @@ class _ReciboAcoes extends StatelessWidget {
         width: double.infinity,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLowest,
+            color: colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: colorScheme.outlineVariant),
           ),
@@ -238,22 +230,6 @@ class _ReciboAcoes extends StatelessWidget {
                     ),
                     OutlinedButton.icon(
                       onPressed:
-                          viewModel.imprimindoPdf ||
-                              viewModel.gerandoPdf ||
-                              viewModel.compartilhandoPdf
-                          ? null
-                          : _imprimir,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.secondary,
-                        side: BorderSide(color: colorScheme.secondary),
-                      ),
-                      icon: const Icon(Icons.print_outlined),
-                      label: Text(
-                        viewModel.imprimindoPdf ? 'Imprimindo...' : 'Imprimir',
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed:
                           viewModel.gerandoPdf ||
                               viewModel.imprimindoPdf ||
                               viewModel.compartilhandoPdf
@@ -266,24 +242,6 @@ class _ReciboAcoes extends StatelessWidget {
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(
                         viewModel.gerandoPdf ? 'Gerando PDF...' : 'Gerar PDF',
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed:
-                          viewModel.compartilhandoPdf ||
-                              viewModel.gerandoPdf ||
-                              viewModel.imprimindoPdf
-                          ? null
-                          : _compartilhar,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.secondary,
-                        side: BorderSide(color: colorScheme.outlineVariant),
-                      ),
-                      icon: const Icon(Icons.ios_share_outlined),
-                      label: Text(
-                        viewModel.compartilhandoPdf
-                            ? 'Compartilhando...'
-                            : 'Compartilhar',
                       ),
                     ),
                   ],
@@ -357,26 +315,6 @@ class _ReciboAcoes extends StatelessWidget {
         ),
       );
     });
-  }
-
-  Future<void> _imprimir() async {
-    final imprimir = onImprimir;
-    if (imprimir == null) {
-      viewModel.prepararImpressao();
-      return;
-    }
-
-    await imprimir();
-  }
-
-  Future<void> _compartilhar() async {
-    final compartilhar = onCompartilharPdf;
-    if (compartilhar == null) {
-      viewModel.prepararCompartilhamentoPdf();
-      return;
-    }
-
-    await compartilhar();
   }
 
   Future<void> _gerarPdf() async {

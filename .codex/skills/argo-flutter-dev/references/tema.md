@@ -26,8 +26,8 @@ Escolha primeiro o contexto da superfície e depois a variação do texto.
 
 ## Cores semânticas
 
-- `primaria` (`#58247C`): cor principal da identidade visual. Use em elementos principais, títulos, destaques institucionais e componentes que carregam a marca.
-- `destaque` (`#7f31b1`): cor de atenção visual. Use em números importantes, indicadores, badges, status e trechos de destaque.
+- `primaria` (`#1C4779`): cor principal da identidade visual. Use em elementos principais, títulos, destaques institucionais e componentes que carregam a marca.
+- `destaque` (`#F28C28`): cor de atenção visual. Use em números importantes, indicadores, badges, status e trechos de destaque.
 - `contrastePrimaria`: cor para texto ou ícone sobre superfície forte ou primária.
 - `textoComum`: cor base de leitura comum, adaptada ao tema claro ou escuro.
 - `backgroundPrimario`: fundo base da tela.

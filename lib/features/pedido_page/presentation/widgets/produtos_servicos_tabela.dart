@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:system_card_rs/features/pedido_page/domain/models/item_recibo.dart';
+import 'package:system_card_rs/features/pedido_page/presentation/input_formatters/monetario_input_formatter.dart';
 
 class ProdutosServicosTabela extends StatelessWidget {
   const ProdutosServicosTabela({
@@ -27,7 +28,7 @@ class ProdutosServicosTabela extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
@@ -274,27 +275,7 @@ class _ProdutoServicoLinha extends StatelessWidget {
   }
 
   static String _formatarCentavos(int centavos) {
-    final sinal = centavos < 0 ? '-' : '';
-    final valorAbsoluto = centavos.abs();
-    final reais = valorAbsoluto ~/ 100;
-    final centavosRestantes = valorAbsoluto % 100;
-
-    return '$sinal$reais,${centavosRestantes.toString().padLeft(2, '0')}';
-  }
-
-  static int _converterMoeda(String valor) {
-    final semEspacos = valor.trim().replaceAll('R\$', '').replaceAll(' ', '');
-    if (semEspacos.isEmpty) {
-      return 0;
-    }
-
-    final normalizado = semEspacos.replaceAll('.', '').replaceAll(',', '.');
-    final valorDecimal = double.tryParse(normalizado);
-    if (valorDecimal == null) {
-      return 0;
-    }
-
-    return (valorDecimal * 100).round();
+    return MonetarioInputFormatter.formatarCentavos(centavos);
   }
 }
 
@@ -535,7 +516,7 @@ class _CampoValorUnitarioState extends State<_CampoValorUnitario> {
       focusNode: _focusNode,
       decoration: const InputDecoration(labelText: 'Valor unitário'),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
+      inputFormatters: const [MonetarioInputFormatter()],
       textInputAction: TextInputAction.done,
       readOnly: widget.somenteLeitura,
       enabled: !widget.somenteLeitura,
@@ -547,7 +528,8 @@ class _CampoValorUnitarioState extends State<_CampoValorUnitario> {
         widget.onAtualizarItem(
           widget.indice,
           widget.item.copyWith(
-            valorUnitarioCentavos: _ProdutoServicoLinha._converterMoeda(valor),
+            valorUnitarioCentavos:
+                MonetarioInputFormatter.converterParaCentavos(valor),
           ),
         );
       },

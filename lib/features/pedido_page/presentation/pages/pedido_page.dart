@@ -10,7 +10,6 @@ import 'package:system_card_rs/features/pedido_page/presentation/viewmodels/pedi
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/cabecalho_app.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/cabecalho_editor_dialog.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/pedido_page_layout.dart';
-import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_compartilhamento_dialog.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_pdf_preview_dialog.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/recibo_pedido.dart';
 import 'package:system_card_rs/features/pedido_page/presentation/widgets/resumo_pedido.dart';
@@ -123,8 +122,6 @@ class _PedidoPageState extends State<PedidoPage> {
           titulo: 'Recibo',
           child: ReciboPedido(
             viewModel: _viewModel,
-            onImprimir: _imprimirRecibo,
-            onCompartilharPdf: _abrirCompartilhamentoPdf,
             onGerarPdf: _abrirPreviaPdf,
           ),
         ),
@@ -220,6 +217,8 @@ class _PedidoPageState extends State<PedidoPage> {
         pdfBytes: pdfBytes,
         nomeArquivo: nomeArquivo,
         previewBuilder: widget.reciboPdfPreviewBuilder,
+        onImprimirPdf: () =>
+            _imprimirPdfGerado(pdfBytes: pdfBytes, nomeArquivo: nomeArquivo),
         onCompartilharPdf: () => _compartilharPdfGerado(
           pdfBytes: pdfBytes,
           nomeArquivo: nomeArquivo,
@@ -230,145 +229,32 @@ class _PedidoPageState extends State<PedidoPage> {
     );
   }
 
-  Future<void> _imprimirRecibo({bool acionadoPeloCabecalho = false}) async {
-    if (_viewModel.gerandoPdf ||
-        _viewModel.imprimindoPdf ||
-        _viewModel.compartilhandoPdf) {
+  Future<void> _imprimirPdfGerado({
+    required Uint8List pdfBytes,
+    required String nomeArquivo,
+  }) async {
+    if (_viewModel.imprimindoPdf || _viewModel.compartilhandoPdf) {
       return;
     }
 
-    if (acionadoPeloCabecalho) {
-      _viewModel.registrarAcaoCabecalho('imprimir');
-    }
-
-    await _viewModel.prepararProximoNumeroRecibo();
-    if (!_viewModel.validarReciboParaImpressao()) {
-      return;
-    }
-
-    _viewModel.prepararImpressao();
-    _viewModel.iniciarImpressao(acionadoPeloCabecalho: acionadoPeloCabecalho);
+    _viewModel.iniciarImpressao();
 
     try {
-      final pdfBytes = await widget.reciboPdfService.gerarPdfA4(
-        recibo: _viewModel.reciboEmEdicao,
-        cabecalho: _viewModel.cabecalhoEmpresa,
-      );
       final impresso = await widget.reciboImpressaoService.imprimirPdf(
-        pdfBytes: pdfBytes,
-        nomeArquivo: _nomeArquivoRecibo(),
-      );
-      _viewModel.concluirImpressao(
-        cancelada: !impresso,
-        acionadoPeloCabecalho: acionadoPeloCabecalho,
-      );
-    } catch (erro) {
-      _viewModel.registrarErroImpressao(
-        _mensagemErroImpressao(erro),
-        acionadoPeloCabecalho: acionadoPeloCabecalho,
-      );
-    }
-  }
-
-  Future<void> _abrirCompartilhamentoPdf() async {
-    if (_viewModel.gerandoPdf ||
-        _viewModel.imprimindoPdf ||
-        _viewModel.compartilhandoPdf) {
-      return;
-    }
-
-    await _viewModel.prepararProximoNumeroRecibo();
-    if (!_viewModel.validarReciboParaCompartilhamento()) {
-      return;
-    }
-
-    _viewModel.prepararCompartilhamentoPdf();
-    final nomeArquivo = _nomeArquivoRecibo();
-    if (!mounted) {
-      return;
-    }
-
-    final opcao = await showDialog<ReciboCompartilhamentoOpcao>(
-      context: context,
-      builder: (dialogContext) => const ReciboCompartilhamentoDialog(),
-    );
-
-    if (opcao == null) {
-      _viewModel.cancelarCompartilhamentoPdf();
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    _viewModel.iniciarCompartilhamentoPdf();
-
-    try {
-      final pdfBytes = await widget.reciboPdfService.gerarPdfA4(
-        recibo: _viewModel.reciboEmEdicao,
-        cabecalho: _viewModel.cabecalhoEmpresa,
-      );
-      final resultado = await _executarCompartilhamento(
-        opcao: opcao,
         pdfBytes: pdfBytes,
         nomeArquivo: nomeArquivo,
       );
-      _registrarResultadoCompartilhamento(opcao, resultado);
+      _viewModel.concluirImpressao(cancelada: !impresso);
     } catch (erro) {
-      _viewModel.registrarErroCompartilhamentoPdf(
-        _mensagemErroCompartilhamento(erro),
-      );
+      _viewModel.registrarErroImpressao(_mensagemErroImpressao(erro));
     }
-  }
-
-  Future<ReciboCompartilhamentoResultado> _executarCompartilhamento({
-    required ReciboCompartilhamentoOpcao opcao,
-    required Uint8List pdfBytes,
-    required String nomeArquivo,
-  }) {
-    return switch (opcao) {
-      ReciboCompartilhamentoOpcao.email =>
-        widget.reciboCompartilhamentoService.compartilharPorEmail(
-          pdfBytes: pdfBytes,
-          nomeArquivo: nomeArquivo,
-          destinatarioEmail: _viewModel.emailClienteSelecionado,
-        ),
-      ReciboCompartilhamentoOpcao.compartilhar =>
-        widget.reciboCompartilhamentoService.compartilharGenerico(
-          pdfBytes: pdfBytes,
-          nomeArquivo: nomeArquivo,
-        ),
-      ReciboCompartilhamentoOpcao.salvarArquivo =>
-        widget.reciboCompartilhamentoService.salvarArquivo(
-          pdfBytes: pdfBytes,
-          nomeArquivo: nomeArquivo,
-        ),
-    };
-  }
-
-  void _registrarResultadoCompartilhamento(
-    ReciboCompartilhamentoOpcao opcao,
-    ReciboCompartilhamentoResultado resultado,
-  ) {
-    if (resultado.status == ReciboCompartilhamentoStatus.cancelado) {
-      _viewModel.cancelarCompartilhamentoPdf();
-      return;
-    }
-
-    if (opcao == ReciboCompartilhamentoOpcao.salvarArquivo) {
-      _viewModel.concluirSalvamentoPdf();
-      return;
-    }
-
-    _viewModel.concluirCompartilhamentoPdf(mensagem: resultado.mensagem);
   }
 
   Future<void> _compartilharPdfGerado({
     required Uint8List pdfBytes,
     required String nomeArquivo,
   }) async {
-    if (_viewModel.compartilhandoPdf) {
+    if (_viewModel.compartilhandoPdf || _viewModel.imprimindoPdf) {
       return;
     }
 
@@ -395,7 +281,7 @@ class _PedidoPageState extends State<PedidoPage> {
     required Uint8List pdfBytes,
     required String nomeArquivo,
   }) async {
-    if (_viewModel.compartilhandoPdf) {
+    if (_viewModel.compartilhandoPdf || _viewModel.imprimindoPdf) {
       return;
     }
 

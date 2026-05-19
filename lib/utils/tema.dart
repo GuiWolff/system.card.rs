@@ -34,11 +34,11 @@ class TemaApp {
           primaryContainer: temaCores.containerPrimario,
           onPrimaryContainer: temaCores.textoPrimarioContainer,
           secondary: temaCores.destaque,
-          onSecondary: TemaCores.conteudoSobreDestaque,
+          onSecondary: temaCores.contrasteDestaque,
           secondaryContainer: temaCores.containerDestaque,
           onSecondaryContainer: temaCores.textoDestaqueContainer,
           tertiary: temaCores.green,
-          onTertiary: TemaCores.conteudoSobreDestaque,
+          onTertiary: temaCores.contrasteSucesso,
           tertiaryContainer: temaCores.containerSucesso,
           onTertiaryContainer: temaCores.textoSucessoContainer,
           surface: temaCores.backgroundSecundario,
@@ -50,14 +50,16 @@ class TemaApp {
           surfaceContainerHighest: temaCores.surfaceMaisAlta,
           outline: temaCores.outline,
           outlineVariant: temaCores.borda,
+          shadow: temaCores.sombraBase,
           error: temaCores.red,
-          onError: Colors.white,
+          onError: temaCores.contrasteErro,
         );
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      shadowColor: temaCores.sombraBase,
       scaffoldBackgroundColor: temaCores.backgroundPrimario,
       fontFamily: TemaTipografia.familiaFonte,
       fontFamilyFallback: TemaTipografia.familiasReserva,
@@ -391,74 +393,87 @@ class TemaService extends ChangeNotifier {
 class TemaCores {
   const TemaCores({this.isDark = false, this.temaEscuroMedio = true});
 
-  static const laranjaPrimario = Color(0xFFF7900A);
-  static const laranjaAcao = Color(0xFFE67F00);
-  static const azulDestaque = Color(0xFF0C78CE);
-  static const azulDestaqueEscuro = Color(0xFF6DB7F2);
+  static const azulPrimario = Color(0xFF1C4779);
+  static const azulPrimarioEscuro = Color(0xFF93C5FD);
+  static const azulAcao = Color(0xFF235A96);
+  static const azulAcaoEscuro = Color(0xFFBFDBFE);
+  static const laranjaDestaque = Color(0xFFF28C28);
+  static const laranjaDestaqueEscuro = Color(0xFFFDBA74);
   static const verdeDestaque = Color(0xFF168A4A);
   static const verdeEnergia = Color(0xFF45D483);
   static const verdeProfundo = Color(0xFF103B2B);
   static const verdeSuperficie = Color(0xFF173D2E);
-  static const conteudoSobrePrimaria = Color(0xFF1F1608);
+  static const conteudoSobrePrimaria = Color(0xFFFFFFFF);
+  static const conteudoSobrePrimariaEscura = Color(0xFF071A2F);
   static const conteudoSobreDestaque = Color(0xFFFFFFFF);
-  static const neutro950 = Color(0xFF0B0F12);
-  static const neutro900 = Color(0xFF141414);
-  static const neutro800 = Color(0xFF202428);
-  static const neutro700 = Color(0xFF343A40);
-  static const neutro600 = Color(0xFF68727D);
-  static const neutro500 = Color(0xFF7A828A);
-  static const neutro400 = Color(0xFF8A929A);
-  static const neutro300 = Color(0xFFADB5BD);
-  static const neutro200 = Color(0xFFDCE1E5);
-  static const neutro150 = Color(0xFFDDE3E8);
-  static const neutro100 = Color(0xFFE3E6EA);
-  static const neutro050 = Color(0xFFF7F8FA);
+  static const conteudoSobreDestaqueEscura = Color(0xFF3A1D04);
+  static const neutro950 = Color(0xFF08111F);
+  static const neutro900 = Color(0xFF0F1B2A);
+  static const neutro800 = Color(0xFF172536);
+  static const neutro700 = Color(0xFF314155);
+  static const neutro600 = Color(0xFF5F6F82);
+  static const neutro500 = Color(0xFF748397);
+  static const neutro400 = Color(0xFF8B99AA);
+  static const neutro300 = Color(0xFFB3BFCC);
+  static const neutro200 = Color(0xFFD4DCE7);
+  static const neutro150 = Color(0xFFE1E7EF);
+  static const neutro100 = Color(0xFFEAF0F6);
+  static const neutro050 = Color(0xFFF5F8FC);
   static const erroClaro = Color(0xFFD43B3B);
   static const erroEscuro = Color(0xFFFF6B6B);
 
   final bool isDark;
   final bool temaEscuroMedio;
 
-  Color get primaria => laranjaPrimario;
+  Color get primaria => isDark ? azulPrimarioEscuro : azulPrimario;
 
-  Color get acaoPrimaria => laranjaAcao;
+  Color get acaoPrimaria => isDark ? azulAcaoEscuro : azulAcao;
 
-  Color get destaque => isDark ? azulDestaqueEscuro : azulDestaque;
+  Color get destaque => isDark ? laranjaDestaqueEscuro : laranjaDestaque;
 
-  Color get contrastePrimaria => conteudoSobrePrimaria;
+  Color get contrastePrimaria =>
+      isDark ? conteudoSobrePrimariaEscura : conteudoSobrePrimaria;
+
+  Color get contrasteDestaque =>
+      isDark ? conteudoSobreDestaqueEscura : conteudoSobreDestaque;
+
+  Color get contrasteSucesso =>
+      isDark ? const Color(0xFF062815) : conteudoSobreDestaque;
+
+  Color get contrasteErro =>
+      isDark ? const Color(0xFF2A0505) : conteudoSobreDestaque;
 
   Color get textoComum =>
-      isDark ? const Color(0xFFEAF0F6) : const Color(0xFF171A1F);
+      isDark ? const Color(0xFFEAF2FA) : const Color(0xFF172131);
 
   Color get texto => textoComum;
 
-  Color get textoSecundario => isDark ? const Color(0xFFC9D6E2) : neutro600;
+  Color get textoSecundario => isDark ? const Color(0xFFC8D6E6) : neutro600;
 
-  Color get textoSutil => isDark ? const Color(0xFF8EA2B5) : neutro400;
+  Color get textoSutil => isDark ? const Color(0xFF94A5B8) : neutro400;
 
-  Color get backgroundPrimario => isDark
-      ? (temaEscuroMedio ? neutro900 : neutro950)
-      : const Color(0xFFF6F8FB);
+  Color get backgroundPrimario =>
+      isDark ? (temaEscuroMedio ? neutro900 : neutro950) : neutro050;
 
   Color get backgroundSecundario =>
-      isDark ? const Color(0xFF1A1E23) : Colors.white;
+      isDark ? const Color(0xFF172536) : Colors.white;
 
   Color get surfaceBaixa =>
-      isDark ? _camadaPrimariaEscura(0.08) : const Color(0xFFF2F5F8);
+      isDark ? _camadaPrimariaEscura(0.10) : const Color(0xFFEFF5FB);
 
   Color get surfaceAlta =>
-      isDark ? _camadaPrimariaEscura(0.14) : const Color(0xFFFBFCFD);
+      isDark ? _camadaPrimariaEscura(0.16) : const Color(0xFFFEFCFF);
 
   Color get surfaceMaisAlta =>
-      isDark ? _camadaPrimariaEscura(0.20) : const Color(0xFFE8EEF5);
+      isDark ? _camadaPrimariaEscura(0.24) : const Color(0xFFDCEAF8);
 
   Color get campo => backgroundSecundario;
 
-  Color get borda => isDark ? const Color(0xFF35414C) : neutro150;
+  Color get borda => isDark ? const Color(0xFF293C54) : neutro150;
 
-  Color get outline => isDark ? const Color(0xFF46596A) : neutro200;
+  Color get outline => isDark ? const Color(0xFF3A5270) : neutro200;
 
-  Color get icons => isDark ? const Color(0xFFC9D6E2) : neutro600;
+  Color get icons => isDark ? const Color(0xFFC8D6E6) : neutro600;
 
   Color get hover => isDark
       ? primaria.withValues(alpha: 0.14)
@@ -472,23 +487,25 @@ class TemaCores {
       ? primaria.withValues(alpha: 0.20)
       : primaria.withValues(alpha: 0.12);
 
-  Color get sombra => Colors.black.withValues(alpha: isDark ? 0.34 : 0.08);
+  Color get sombraBase => const Color(0xFF071527);
+
+  Color get sombra => sombraBase.withValues(alpha: isDark ? 0.34 : 0.08);
 
   Color get green => isDark ? verdeEnergia : verdeDestaque;
 
   Color get red => isDark ? erroEscuro : erroClaro;
 
   Color get containerPrimario =>
-      isDark ? const Color(0xFF4A2A08) : const Color(0xFFFFE6C4);
+      isDark ? const Color(0xFF12314F) : const Color(0xFFDDEBFA);
 
   Color get textoPrimarioContainer =>
-      isDark ? const Color(0xFFFFD8A6) : const Color(0xFF3A2108);
+      isDark ? const Color(0xFFD7E9FF) : const Color(0xFF0B2A4A);
 
   Color get containerDestaque =>
-      isDark ? const Color(0xFF0A3558) : const Color(0xFFDDEFFF);
+      isDark ? const Color(0xFF5C3418) : const Color(0xFFFFEFDE);
 
   Color get textoDestaqueContainer =>
-      isDark ? const Color(0xFFD8EDFF) : const Color(0xFF08385F);
+      isDark ? const Color(0xFFFFD9B0) : const Color(0xFF623300);
 
   Color get containerSucesso =>
       isDark ? verdeSuperficie : const Color(0xFFDFF6E9);
@@ -579,9 +596,9 @@ abstract final class TemaTipografia {
 }
 
 abstract final class TemaMedidas {
-  static const alturaControle = 42.0;
+  static const alturaControle = 44.0;
   static const larguraMinimaControle = 64.0;
-  static const raioControle = 4.0;
+  static const raioControle = 6.0;
   static const raioCheckbox = 4.0;
   static const raioCard = 8.0;
   static const raioPainel = 8.0;
